@@ -1,0 +1,19 @@
+{
+  "name": "tutorzen-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TutorZen — Multi-tenant Coaching Management System",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^5.8.0"
+  }
+}

@@ -1,0 +1,45 @@
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+.metro-cache/
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# IDEs
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+
+# Environment variables & local secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Temporary files
+*.tmp
+*.bak
+scratch/
+
