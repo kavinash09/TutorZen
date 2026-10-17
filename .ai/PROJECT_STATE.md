@@ -17,15 +17,23 @@ Last verified: 2026-10-18
   - Flyway migrations `V1__init_schema.sql` (tenants, attendance_records), `V2__identity_schema.sql` (users, user_credentials, refresh_tokens, seed accounts), and `V3__academics_schema.sql` (subjects, batches, students, batch_enrollments, class_sessions, seed roster/sessions).
   - Academics module (`com.tutorzen.academics`) with JPA entities (`ClassSession`, `Student`, `Batch`) and repositories.
   - Attendance Strategy Pattern (Bulk, QR, 6-digit PIN), offline synchronization service, `TeacherSessionController` reading live sessions and persisting bulk records to `AttendanceRecordRepository`.
-  - 37 unit and integration tests passing (`./mvnw test`).
+  - 46 unit and integration tests passing (`./mvnw test`).
 - [VERIFIED] Implement Mobile Authentication & Teacher Flow live integration:
   - `apiClient.ts` handles JWT tokens, automatic 401 token refresh, sign-in, sign-out, session fetching, and attendance submission.
   - `AuthContext.tsx` wraps session state with authenticated profile.
   - `AuthScreen.tsx` with Claymorphic aesthetic and 1-tap demo logins for Teacher (`teacher@demo.com`) and Student (`student@demo.com`).
   - `TeacherHomeScreen` wired to live backend API (`GET /api/v1/teacher/sessions/today`) with live connection badge.
-  - `MarkAttendanceScreen` loads live batch roster and saves attendance to backend DB.
+  - `MarkAttendanceScreen` loads live batch roster, supports single-student status toggling, and saves attendance to backend DB.
+- [VERIFIED] Implement Learning Materials & Upload Notes module (ADR-0011):
+  - `V4__materials_schema.sql` migration: `learning_materials` table with indexes and seed data.
+  - `Subject` JPA entity and repository in `com.tutorzen.academics`.
+  - `LearningMaterial` JPA entity, repository, and `TeacherMaterialsController` (`GET`, `POST`, `DELETE`, `GET /subjects`).
+  - `UploadNotesScreen.tsx` with subject selector, sample file attachment presets, published notes list with delete action, and red border/background highlight validation on required fields.
+  - 19 mobile unit tests passing (`npm test`), 46 backend tests passing (`./mvnw test`).
+  - Quick action tile on `TeacherHomeScreen` and navigation state in `App.tsx`.
 - [VERIFIED-PROTOTYPE] Implement Student Flow on mobile: StudentHomeScreen (Screen 4), StudentAttendanceEntryScreen (Screen 15), StudentAttendanceSummaryScreen (Screen 13), StudentBottomNav, and RoleSwitcherPill (typecheck passing). **Backend endpoint integration for student submission in progress.**
 - [VERIFIED] Establish `infrastructure/docker/docker-compose.yml` for local PostgreSQL database. Both backend and Expo servers verified running.
+
 
 ## Critical gaps before V1
 
@@ -65,10 +73,11 @@ The following gaps remain before closing the V1 gate:
 ## Verification commands
 
 - `packages/design-tokens`: `npx tsx --test` → 12/12 test assertions passing.
-- `apps/mobile`: `npm test` → 15/15 unit tests passing (`rosterUtils.test.ts`).
+- `apps/mobile`: `npm test` → 18/18 unit tests passing (`rosterUtils.test.ts`, `materials.test.ts`).
 - `apps/mobile`: `npx tsc --noEmit` → 0 errors.
-- `apps/backend`: `./mvnw test` → 40/40 tests passing (0 failures, 0 errors).
+- `apps/backend`: `./mvnw test` → 46/46 tests passing (0 failures, 0 errors).
 - Backend API live: `http://localhost:8080` (Spring Boot running with PostgreSQL).
 - Mobile Dev Server live: `http://localhost:8081` (Expo web running).
+
 
 

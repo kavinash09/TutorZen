@@ -18,11 +18,13 @@ import { apiClient } from '../services/apiClient';
 export interface TeacherHomeScreenProps {
   onNavigateToMarkAttendance: (sessionId: string) => void;
   onNavigateToClasses?: () => void;
+  onNavigateToUploadNotes?: () => void;
 }
 
 export const TeacherHomeScreen: React.FC<TeacherHomeScreenProps> = ({
   onNavigateToMarkAttendance,
   onNavigateToClasses,
+  onNavigateToUploadNotes,
 }) => {
   const theme = useTheme();
   const [sessions, setSessions] = useState<TeacherClassSession[]>([]);
@@ -219,7 +221,11 @@ export const TeacherHomeScreen: React.FC<TeacherHomeScreenProps> = ({
             </TactileCard>
           </TouchableOpacity>
 
-          <TouchableOpacity activeOpacity={0.8} style={styles.quickActionTouch}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={onNavigateToUploadNotes}
+            style={styles.quickActionTouch}
+          >
             <TactileCard padding={4} style={styles.quickActionCard}>
               <View
                 style={[

@@ -85,3 +85,12 @@ This file is append-only. Do not rewrite history to make a past decision look di
 - **Consequences:** Adding a new role requires a migration. Fine-grained per-resource permissions are not supported in V1 (acceptable). Role is encoded in the JWT at sign-in; changing a user's role requires token refresh to take effect.
 - **Revisit when:** Coaching Admin role requires per-batch or per-subject permission scoping.
 
+## ADR-0011 — Learning Materials: subject-scoped metadata repository
+
+- **Status:** Accepted (2026-10-18, owner decision).
+- **Context:** Teachers need to upload lecture notes, formula sheets, and study materials. Two scoping models were considered: (a) session & batch-specific (notes only visible to a specific batch), (b) general subject repository (notes tagged by Subject, e.g. Mathematics, and accessible across all batches taking that subject).
+- **Decision:** Notes and learning materials are tagged primarily by Subject (`subject_id`) and tenant (`tenant_id`). Materials are persisted in the `learning_materials` table via `V4__materials_schema.sql`. Endpoints are exposed under `/api/v1/teacher/materials` with `TEACHER` and `ADMIN` role access.
+- **Consequences:** All students enrolled in batches sharing a subject can view and download the notes for that subject. Teachers can upload notes once and have them available across multiple sections. Physical binary files can be stored in object storage or external URLs while metadata and document descriptors are preserved in PostgreSQL.
+- **Revisit when:** Individual private batches require confidential or batch-exclusive exam notes.
+
+

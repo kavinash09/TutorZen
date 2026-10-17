@@ -29,6 +29,19 @@ Transition TutorZen from a UI/documentation prototype to a V1-ready foundation. 
 - [x] `MarkAttendanceScreen.tsx` loading batch roster from backend, syncing session codes with backend DB, and submitting bulk attendance.
 - [x] `App.tsx` wired with `AuthProvider` and sign-out header action.
 
+### Learning Materials & Upload Notes (COMPLETED)
+
+- [x] ADR-0011: Subject-scoped learning materials metadata repository.
+- [x] `V4__materials_schema.sql` migration: `learning_materials` table with indexes and seed data.
+- [x] JPA entities (`Subject`, `LearningMaterial`) and repositories in `com.tutorzen.academics` and `com.tutorzen.materials`.
+- [x] `TeacherMaterialsController`: `GET /api/v1/teacher/materials`, `POST`, `DELETE`, and `GET /subjects`.
+- [x] 6 integration tests in `TeacherMaterialsPersistenceTests.java` (46/46 total backend tests passing).
+- [x] Mobile `apiClient.ts` methods for materials (`getMaterials`, `uploadMaterial`, `deleteMaterial`, `getSubjects`).
+- [x] `UploadNotesScreen.tsx` with Claymorphic aesthetic, subject pills, file presets picker, and published notes list with delete action.
+- [x] UI field validation: Clicking publish without required title highlights input border and background in red, displays "Required" indicator & helper caption, and clears immediately on typing.
+- [x] Unit tests in `materials.test.ts` (19/19 total mobile unit tests passing).
+
+
 ### Student Attendance Real Persistence & Mobile Integration (ACTIVE / NEXT)
 
 - [ ] Update `StudentAttendanceController` to validate session PIN/QR against `ClassSessionRepository` and persist attendance to `AttendanceRecordRepository`.

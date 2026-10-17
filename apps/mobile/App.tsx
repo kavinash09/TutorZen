@@ -22,6 +22,7 @@ import { AuthScreen } from './src/screens/AuthScreen';
 // Teacher Flow Components
 import { TeacherHomeScreen } from './src/screens/TeacherHomeScreen';
 import { MarkAttendanceScreen } from './src/screens/MarkAttendanceScreen';
+import { UploadNotesScreen } from './src/screens/UploadNotesScreen';
 import { TeacherBottomNav, TeacherTab } from './src/components/TeacherBottomNav';
 
 // Student Flow Components
@@ -30,7 +31,7 @@ import { StudentAttendanceEntryScreen } from './src/screens/StudentAttendanceEnt
 import { StudentAttendanceSummaryScreen } from './src/screens/StudentAttendanceSummaryScreen';
 import { StudentBottomNav, StudentTab } from './src/components/StudentBottomNav';
 
-export type TeacherScreenState = 'teacher_home' | 'mark_attendance';
+export type TeacherScreenState = 'teacher_home' | 'mark_attendance' | 'upload_notes';
 export type StudentScreenState = 'student_home' | 'student_attendance_entry' | 'student_attendance_summary';
 
 function MainApp() {
@@ -103,6 +104,7 @@ function MainApp() {
                 <TeacherHomeScreen
                   onNavigateToMarkAttendance={handleStartAttendance}
                   onNavigateToClasses={() => setTeacherTab('classes')}
+                  onNavigateToUploadNotes={() => setTeacherScreen('upload_notes')}
                 />
                 <TeacherBottomNav
                   activeTab={teacherTab}
@@ -125,7 +127,14 @@ function MainApp() {
                 onNavigateBack={() => setTeacherScreen('teacher_home')}
               />
             )}
+
+            {teacherScreen === 'upload_notes' && (
+              <UploadNotesScreen
+                onNavigateBack={() => setTeacherScreen('teacher_home')}
+              />
+            )}
           </>
+
         ) : (
           /* STUDENT FLOW */
           <>

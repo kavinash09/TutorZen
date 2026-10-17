@@ -259,7 +259,87 @@ class ApiService {
       }
     );
   }
+
+  async getSubjects(): Promise<SubjectItem[]> {
+    try {
+      return await this.request<SubjectItem[]>('/api/v1/teacher/materials/subjects');
+    } catch {
+      return [
+        { id: 'sub-math-11', name: 'Mathematics', code: 'MATH-11' },
+        { id: 'sub-phy-11', name: 'Physics', code: 'PHY-11' },
+      ];
+    }
+  }
+
+  async getMaterials(subjectId?: string): Promise<LearningMaterialItem[]> {
+    const query = subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : '';
+    try {
+      return await this.request<LearningMaterialItem[]>(`/api/v1/teacher/materials${query}`);
+    } catch (err) {
+      console.warn('Backend materials unavailable, using fallback', err);
+      return [
+        {
+          id: 'mat-01',
+          subjectId: 'sub-math-11',
+          subjectName: 'Mathematics',
+          title: 'Calculus: Integration by Parts & Formulas',
+          description: 'Comprehensive formula guide with derivations and practice problems.',
+          fileName: 'Calculus_Ch4_Integration_Formulas.pdf',
+          fileType: 'application/pdf',
+          fileSizeBytes: 2411724,
+          uploadedBy: 'usr-teacher-01',
+          uploaderName: 'Priya Ma\'am',
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    }
+  }
+
+  async uploadMaterial(payload: CreateMaterialPayload): Promise<LearningMaterialItem> {
+    return this.request<LearningMaterialItem>('/api/v1/teacher/materials', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteMaterial(materialId: string): Promise<void> {
+    await this.request<void>(`/api/v1/teacher/materials/${materialId}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+export interface LearningMaterialItem {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  title: string;
+  description?: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  fileUrl?: string;
+  uploadedBy: string;
+  uploaderName?: string;
+  createdAt: string;
+}
+
+export interface SubjectItem {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface CreateMaterialPayload {
+  subjectId: string;
+  title: string;
+  description?: string;
+  fileName: string;
+  fileType?: string;
+  fileSizeBytes?: number;
+  fileUrl?: string;
 }
 
 export const apiClient = new ApiService();
+
 

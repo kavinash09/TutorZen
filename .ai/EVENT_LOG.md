@@ -116,5 +116,32 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** 40/40 backend tests passing (`./mvnw test`), 15/15 mobile unit tests passing (`npm test`), mobile typecheck clean (`npx tsc --noEmit`), and verified with live curl calls confirming selective student attendance persistence.
 - **Outcome:** Individual student marking operates strictly on the targeted student.
 
+---
 
+## Learning Materials & Upload Notes Module (Teacher Journey)
 
+- **Date/time:** 2026-10-18T02:00:00+05:30
+- **Type:** `IMPLEMENTATION`
+- **Summary:** Implemented the full-stack Learning Materials & Notes feature per ADR-0011.
+  - **Database Migration:** Created `V4__materials_schema.sql` defining the `learning_materials` table with tenant and subject scoping, file metadata, and baseline seed data for `tenant-default`.
+  - **Backend Module (`com.tutorzen.materials` & `com.tutorzen.academics`):** Added `Subject` JPA entity and `SubjectRepository`; implemented `LearningMaterial` JPA entity, `LearningMaterialRepository`, DTOs (`CreateMaterialRequest`, `MaterialSummaryDto`), and `TeacherMaterialsController` exposing endpoints: `GET /api/v1/teacher/materials` (with optional subject filtering), `POST` (create notes metadata), `DELETE /{materialId}`, and `GET /subjects`.
+  - **Backend Tests:** Added `TeacherMaterialsPersistenceTests.java` covering listing, subject filtering, metadata persistence, deletion, and 401 unauthenticated protection. All 46 backend JUnit tests passing (`./mvnw test`).
+  - **Mobile Client:** Added materials types and API methods in `apiClient.ts` (`getMaterials`, `uploadMaterial`, `deleteMaterial`, `getSubjects`). Created `UploadNotesScreen.tsx` with Claymorphic card layout, dynamic subject pills, file attachment presets picker, and live repository list with delete actions. Wired to `TeacherHomeScreen` quick action tile and `App.tsx` routing.
+  - **Mobile Tests:** Added unit tests in `apps/mobile/src/__tests__/materials.test.ts`. 18/18 mobile unit tests passing (`npm test`), typecheck clean (`npx tsc --noEmit`).
+- **Evidence:** 46/46 backend JUnit tests passing, 18/18 mobile unit tests passing, mobile TypeScript check clean, and live endpoints verified via curl and Expo dev server.
+- **Outcome:** Teachers can seamlessly upload, view, filter, and delete subject-scoped notes and study materials backed by real database persistence.
+- **Follow-up:** Implement student view for downloading/browsing study notes.
+
+---
+
+## Required Field UI Red Highlight Validation on Upload Notes Screen
+
+- **Date/time:** 2026-10-18T02:08:00+05:30
+- **Type:** `UI_IMPROVEMENT`
+- **Summary:** Added explicit red border and background highlighting with contextual error text when attempting to publish notes without providing the mandatory `title`.
+  - **Component:** In `UploadNotesScreen.tsx`, when `handleUpload` is triggered without a title, `titleError` state is set to `true`.
+  - **Visual Treatment:** The title input dynamically switches border color to `theme.colors.status.danger` (`#B42318`), background color to `theme.colors.status.dangerLight` (`#FEE4E2`), border width to 1.5, placeholder text to danger tint, displays a bold "Required" status pill in the label header, and shows a warning caption (`⚠ Title is required to publish notes.`).
+  - **Auto-Clearing:** Error state immediately resets as soon as the user enters valid non-whitespace text.
+  - **Tests:** Extended `apps/mobile/src/__tests__/materials.test.ts` with test verifying blank/whitespace rejection, color switching to status danger, and clearing upon typing.
+- **Evidence:** 19/19 mobile unit tests passing (`npm test`), `npx tsc --noEmit` clean, 46/46 backend tests passing (`./mvnw test`).
+- **Outcome:** Intuitive, accessible user feedback preventing empty material submission.
