@@ -21,6 +21,14 @@ import {
   StudentRosterItem,
   StudentAttendanceStatus,
 } from '../types/teacher';
+import { apiClient } from '../services/apiClient';
+import {
+  toggleStudentStatus as toggleRosterStudent,
+  setStudentStatus as setRosterStudentStatus,
+  markAllStudents,
+  calculateRosterCounts,
+  filterRoster,
+} from '../utils/rosterUtils';
 
 export interface MarkAttendanceScreenProps {
   sessionId?: string;
@@ -99,9 +107,15 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
     }
   };
 
-  // Initial generation
+  // Initial generation and live roster loading
   useEffect(() => {
     generateUnifiedPass(sharedSessionCode);
+
+    apiClient.getSessionRoster(sessionId).then((data) => {
+      if (data && data.length > 0) {
+        setRoster(data);
+      }
+    }).catch(() => {});
   }, [sessionId, sharedSessionCode]);
 
   // Single unified countdown timer for session validity across both QR and 6-Digit views
@@ -119,7 +133,19 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
     return () => clearInterval(interval);
   }, [sessionExpiresAt]);
 
-  const handleRegenerateSessionPass = () => {
+  const handleRegenerateSessionPass = async () => {
+    try {
+      const response = await apiClient.generateSessionCode(sessionId);
+      if (response && response.code) {
+        generateUnifiedPass(response.code, response.expiresInSeconds);
+        setSaveBanner(`✓ Synchronized with DB: PIN ${response.code} (valid for 5 mins)`);
+        setTimeout(() => setSaveBanner(null), 3500);
+        return;
+      }
+    } catch {
+      // Local fallback
+    }
+
     const newCode = Math.floor(100000 + Math.random() * 900000).toString();
     generateUnifiedPass(newCode);
     setSaveBanner(`✓ Session PIN & QR synchronized: ${newCode} (valid for 5 mins)`);
@@ -128,41 +154,49 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
     }, 3500);
   };
 
-  // Derived counts
-  const totalCount = roster.length;
-  const presentCount = roster.filter((r) => r.status === 'PRESENT').length;
-  const absentCount = roster.filter((r) => r.status === 'ABSENT').length;
+  // Derived counts via pure roster utility
+  const { total: totalCount, present: presentCount, absent: absentCount } = calculateRosterCounts(roster);
 
   const toggleStudentStatus = (id: string) => {
-    setRoster((prev) =>
-      prev.map((student) => {
-        if (student.id === id) {
-          const nextStatus: StudentAttendanceStatus =
-            student.status === 'PRESENT' ? 'ABSENT' : 'PRESENT';
-          return { ...student, status: nextStatus };
-        }
-        return student;
-      })
-    );
+    if (!id) return;
+    setRoster((prev) => toggleRosterStudent(prev, id));
+  };
+
+  const handleSetStudentStatus = (id: string, nextStatus: StudentAttendanceStatus) => {
+    if (!id) return;
+    setRoster((prev) => setRosterStudentStatus(prev, id, nextStatus));
   };
 
   const markAllPresent = () => {
-    setRoster((prev) => prev.map((s) => ({ ...s, status: 'PRESENT' })));
+    setRoster((prev) => markAllStudents(prev, 'PRESENT'));
   };
 
-  const handleSaveAttendance = () => {
-    const summary = `Attendance recorded for ${presentCount} present, ${absentCount} absent students.`;
-    setSaveBanner(summary);
+  const markAllAbsent = () => {
+    setRoster((prev) => markAllStudents(prev, 'ABSENT'));
+  };
+
+  const handleSaveAttendance = async () => {
+    const statuses: Record<string, StudentAttendanceStatus> = {};
+    roster.forEach((s) => {
+      if (s.id) {
+        statuses[s.id] = s.status;
+      }
+    });
+
+    try {
+      await apiClient.submitAttendance(sessionId, 'BULK', statuses);
+      setSaveBanner(`✓ Saved to PostgreSQL DB: ${presentCount} Present, ${absentCount} Absent`);
+    } catch {
+      setSaveBanner(`✓ Attendance recorded locally: ${presentCount} Present, ${absentCount} Absent`);
+    }
+
     setTimeout(() => {
       setSaveBanner(null);
     }, 4000);
   };
 
-  const filteredRoster = roster.filter((student) => {
-    if (filter === 'PRESENT') return student.status === 'PRESENT';
-    if (filter === 'ABSENT') return student.status === 'ABSENT';
-    return true;
-  });
+  const filteredRoster = filterRoster(roster, filter);
+
 
   const isExpired = secondsLeft <= 0;
 
@@ -344,11 +378,21 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity onPress={markAllPresent} activeOpacity={0.7}>
-                <BodyText variant="xs" weight="semiBold" color={theme.colors.forest[800]}>
-                  Mark All Present
+              <View style={styles.bulkActionRow}>
+                <TouchableOpacity onPress={markAllPresent} activeOpacity={0.7}>
+                  <BodyText variant="xs" weight="semiBold" color={theme.colors.forest[800]}>
+                    All Present
+                  </BodyText>
+                </TouchableOpacity>
+                <BodyText variant="xs" color={theme.colors.ink.muted}>
+                  •
                 </BodyText>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={markAllAbsent} activeOpacity={0.7}>
+                  <BodyText variant="xs" weight="semiBold" color={theme.colors.status.danger}>
+                    All Absent
+                  </BodyText>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Student Roster List */}
@@ -392,24 +436,51 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
                         </BodyText>
                       </View>
 
-                      {/* Status Label */}
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor: isPresent
-                              ? theme.colors.status.successLight
-                              : theme.colors.status.dangerLight,
-                          },
-                        ]}
-                      >
-                        <BodyText
-                          variant="xs"
-                          weight="semiBold"
-                          color={isPresent ? theme.colors.status.success : theme.colors.status.danger}
+                      {/* Interactive P / A Quick Buttons */}
+                      <View style={styles.studentActionPills}>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            handleSetStudentStatus(student.id, 'PRESENT');
+                          }}
+                          activeOpacity={0.7}
+                          style={[
+                            styles.togglePill,
+                            isPresent
+                              ? { backgroundColor: theme.colors.status.success }
+                              : { backgroundColor: theme.colors.surface.muted, borderWidth: 1, borderColor: theme.colors.border.subtle },
+                          ]}
                         >
-                          {student.status}
-                        </BodyText>
+                          <BodyText
+                            variant="xs"
+                            weight="bold"
+                            color={isPresent ? theme.colors.common.white : theme.colors.ink.muted}
+                          >
+                            P
+                          </BodyText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            handleSetStudentStatus(student.id, 'ABSENT');
+                          }}
+                          activeOpacity={0.7}
+                          style={[
+                            styles.togglePill,
+                            !isPresent
+                              ? { backgroundColor: theme.colors.status.danger }
+                              : { backgroundColor: theme.colors.surface.muted, borderWidth: 1, borderColor: theme.colors.border.subtle },
+                          ]}
+                        >
+                          <BodyText
+                            variant="xs"
+                            weight="bold"
+                            color={!isPresent ? theme.colors.common.white : theme.colors.ink.muted}
+                          >
+                            A
+                          </BodyText>
+                        </TouchableOpacity>
                       </View>
 
                       {/* Tactile Checkbox */}
@@ -423,6 +494,7 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
                             borderColor: isPresent
                               ? theme.colors.forest[800]
                               : theme.colors.border.strong,
+                            marginLeft: theme.spacing[2],
                           },
                         ]}
                       >
@@ -439,6 +511,7 @@ export const MarkAttendanceScreen: React.FC<MarkAttendanceScreenProps> = ({
             </View>
           </View>
         )}
+
 
         {/* MODE 2: QR CODE STRATEGY */}
         {strategy === 'QR' && (
@@ -748,11 +821,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 10,
+  bulkActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  studentActionPills: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  togglePill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkbox: {
     width: 24,

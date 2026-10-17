@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -6,12 +6,14 @@ import {
   StyleSheet,
   StatusBar,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Heading, BodyText } from '../components/Typography';
 import { TactileCard } from '../components/TactileCard';
 import { TactileButton } from '../components/TactileButton';
 import { TeacherClassSession } from '../types/teacher';
+import { apiClient } from '../services/apiClient';
 
 export interface TeacherHomeScreenProps {
   onNavigateToMarkAttendance: (sessionId: string) => void;
@@ -23,36 +25,24 @@ export const TeacherHomeScreen: React.FC<TeacherHomeScreenProps> = ({
   onNavigateToClasses,
 }) => {
   const theme = useTheme();
+  const [sessions, setSessions] = useState<TeacherClassSession[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLiveBackend, setIsLiveBackend] = useState<boolean>(false);
 
-  const sessions: TeacherClassSession[] = [
-    {
-      id: 'session-math-a',
-      subject: 'Mathematics',
-      batchName: 'Batch A',
-      timeSlot: '10:00 AM – 11:00 AM',
-      room: 'Room A1',
-      enrolledStudentsCount: 42,
-      status: 'UPCOMING',
-    },
-    {
-      id: 'session-math-b',
-      subject: 'Mathematics',
-      batchName: 'Batch B',
-      timeSlot: '12:00 PM – 1:00 PM',
-      room: 'Room A2',
-      enrolledStudentsCount: 38,
-      status: 'UPCOMING',
-    },
-    {
-      id: 'session-doubt',
-      subject: 'Doubt Session',
-      batchName: 'Class 11 & 12',
-      timeSlot: '4:00 PM – 5:00 PM',
-      room: 'Room B1',
-      enrolledStudentsCount: 12,
-      status: 'UPCOMING',
-    },
-  ];
+  const loadSessions = async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiClient.getTodayTeacherSessions();
+      setSessions(res.sessions);
+      setIsLiveBackend(res.isLive);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSessions();
+  }, []);
 
   return (
     <SafeAreaView
@@ -96,22 +86,29 @@ export const TeacherHomeScreen: React.FC<TeacherHomeScreenProps> = ({
           </View>
         </View>
 
-        {/* Offline Sync State Banner */}
+        {/* Backend & Offline Sync State Banner */}
         <View
           style={[
             styles.syncBanner,
             {
-              backgroundColor: theme.colors.forest[50],
-              borderColor: theme.colors.forest[100],
+              backgroundColor: isLiveBackend ? theme.colors.forest[50] : theme.colors.surface.muted,
+              borderColor: isLiveBackend ? theme.colors.forest[100] : theme.colors.border.subtle,
               borderRadius: theme.radii.control,
               padding: theme.spacing[3],
               marginTop: theme.spacing[4],
             },
           ]}
         >
-          <View style={styles.syncDot} />
+          <View
+            style={[
+              styles.syncDot,
+              { backgroundColor: isLiveBackend ? theme.colors.status.success : theme.colors.status.warning },
+            ]}
+          />
           <BodyText variant="xs" color={theme.colors.forest[950]} weight="medium">
-            Offline Attendance Sync: All submissions synced with server
+            {isLiveBackend
+              ? '● Spring Boot API Connected (Live Database Sessions)'
+              : 'Offline Attendance Sync: All submissions synced with server'}
           </BodyText>
         </View>
 

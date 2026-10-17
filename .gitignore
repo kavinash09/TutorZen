@@ -43,3 +43,5 @@ target/
 *.bak
 scratch/
 
+
+.oraclemachine

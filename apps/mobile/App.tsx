@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Platform, SafeAreaView } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, SafeAreaView, TouchableOpacity } from 'react-native';
 import {
   useFonts,
   EBGaramond_400Regular,
@@ -16,6 +16,8 @@ import { registerRootComponent } from 'expo';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { BodyText, Heading } from './src/components/Typography';
 import { RoleSwitcherPill, UserRole } from './src/components/RoleSwitcherPill';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { AuthScreen } from './src/screens/AuthScreen';
 
 // Teacher Flow Components
 import { TeacherHomeScreen } from './src/screens/TeacherHomeScreen';
@@ -31,9 +33,16 @@ import { StudentBottomNav, StudentTab } from './src/components/StudentBottomNav'
 export type TeacherScreenState = 'teacher_home' | 'mark_attendance';
 export type StudentScreenState = 'student_home' | 'student_attendance_entry' | 'student_attendance_summary';
 
-export default function App() {
-  // Global Role Toggle (Teacher vs Student)
-  const [currentRole, setCurrentRole] = useState<UserRole>('teacher');
+function MainApp() {
+  const { user, isAuthenticated, signOut, switchUserRole } = useAuth();
+
+  // If not authenticated, render the AuthScreen
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
+
+  // Derive role
+  const currentRole: UserRole = user?.role === 'STUDENT' ? 'student' : 'teacher';
 
   // Coordinated Session & Verification State across Teacher and Student
   const [sessionCode, setSessionCode] = useState<string>('742916');
@@ -49,25 +58,6 @@ export default function App() {
   const [studentScreen, setStudentScreen] = useState<StudentScreenState>('student_home');
   const [studentTab, setStudentTab] = useState<StudentTab>('home');
 
-  const [fontsLoaded, fontError] = useFonts({
-    EBGaramond_400Regular,
-    EBGaramond_600SemiBold,
-    EBGaramond_700Bold,
-    Barlow_400Regular,
-    Barlow_500Medium,
-    Barlow_600SemiBold,
-    Barlow_700Bold,
-  });
-
-  // On native platforms, wait for custom fonts; on web, fallback fonts render immediately
-  if (Platform.OS !== 'web' && !fontsLoaded && !fontError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1D4A25" />
-      </View>
-    );
-  }
-
   const handleStartAttendance = (sessionId: string) => {
     setActiveSessionId(sessionId);
     setTeacherScreen('mark_attendance');
@@ -78,116 +68,150 @@ export default function App() {
   };
 
   return (
-    <ThemeProvider>
-      <SafeAreaView style={styles.appContainer}>
-        {/* Universal Top Role-Switching Header */}
-        <View style={styles.topRoleHeader}>
-          <View style={styles.brandingBox}>
-            <Heading level={3} style={styles.brandTitle}>
-              TutorZen
-            </Heading>
-            <BodyText variant="xs" color="#686F64" style={styles.brandSub}>
-              Apex Coaching Hub
-            </BodyText>
-          </View>
+    <SafeAreaView style={styles.appContainer}>
+      {/* Universal Top Header with Brand, Role Switcher, and User Sign Out */}
+      <View style={styles.topRoleHeader}>
+        <View style={styles.brandingBox}>
+          <Heading level={3} style={styles.brandTitle}>
+            TutorZen
+          </Heading>
+          <BodyText variant="xs" color="#686F64" style={styles.brandSub}>
+            {user?.fullName || 'Apex Coaching'} • {user?.email}
+          </BodyText>
+        </View>
+
+        <View style={styles.headerActions}>
           <RoleSwitcherPill
             currentRole={currentRole}
-            onRoleChange={(role) => setCurrentRole(role)}
+            onRoleChange={(role) => switchUserRole(role === 'student' ? 'STUDENT' : 'TEACHER')}
           />
+          <TouchableOpacity onPress={() => signOut()} style={styles.signOutBtn} activeOpacity={0.7}>
+            <BodyText variant="xs" color="#A03025" weight="semiBold">
+              Sign Out
+            </BodyText>
+          </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Content Area Based on Role */}
-        <View style={styles.contentContainer}>
-          {currentRole === 'teacher' ? (
-            /* TEACHER FLOW */
-            <>
-              {teacherScreen === 'teacher_home' && (
-                <>
-                  <TeacherHomeScreen
-                    onNavigateToMarkAttendance={handleStartAttendance}
-                    onNavigateToClasses={() => setTeacherTab('classes')}
-                  />
-                  <TeacherBottomNav
-                    activeTab={teacherTab}
-                    onTabChange={(tab) => {
-                      setTeacherTab(tab);
-                      setTeacherScreen('teacher_home');
-                    }}
-                  />
-                </>
-              )}
-
-              {teacherScreen === 'mark_attendance' && (
-                <MarkAttendanceScreen
-                  sessionId={activeSessionId}
-                  sharedSessionCode={sessionCode}
-                  onSessionCodeChange={(newCode) => setSessionCode(newCode)}
-                  isSessionExpired={isSessionExpired}
-                  onSessionExpiryChange={(expired) => setIsSessionExpired(expired)}
-                  studentAttendanceMarked={isStudentAttendanceMarked}
-                  onNavigateBack={() => setTeacherScreen('teacher_home')}
+      {/* Content Area Based on Role */}
+      <View style={styles.contentContainer}>
+        {currentRole === 'teacher' ? (
+          /* TEACHER FLOW */
+          <>
+            {teacherScreen === 'teacher_home' && (
+              <>
+                <TeacherHomeScreen
+                  onNavigateToMarkAttendance={handleStartAttendance}
+                  onNavigateToClasses={() => setTeacherTab('classes')}
                 />
-              )}
-            </>
-          ) : (
-            /* STUDENT FLOW */
-            <>
-              {studentScreen === 'student_home' && (
-                <>
-                  <StudentHomeScreen
-                    studentName="Aditya"
-                    isAttendanceMarked={isStudentAttendanceMarked}
-                    onNavigateToMarkAttendance={() => setStudentScreen('student_attendance_entry')}
-                    onNavigateToAttendanceSummary={() => setStudentScreen('student_attendance_summary')}
-                    onNavigateToClasses={() => setStudentTab('classes')}
-                  />
-                  <StudentBottomNav
-                    activeTab={studentTab}
-                    onTabChange={(tab) => {
-                      setStudentTab(tab);
-                      if (tab === 'attendance') {
-                        setStudentScreen('student_attendance_summary');
-                      } else if (tab === 'home') {
-                        setStudentScreen('student_home');
-                      }
-                    }}
-                  />
-                </>
-              )}
+                <TeacherBottomNav
+                  activeTab={teacherTab}
+                  onTabChange={(tab) => {
+                    setTeacherTab(tab);
+                    setTeacherScreen('teacher_home');
+                  }}
+                />
+              </>
+            )}
 
-              {studentScreen === 'student_attendance_entry' && (
-                <StudentAttendanceEntryScreen
-                  sessionCode={sessionCode}
-                  isSessionExpired={isSessionExpired}
-                  isAlreadyMarked={isStudentAttendanceMarked}
-                  onSuccessSubmit={handleStudentSubmitSuccess}
+            {teacherScreen === 'mark_attendance' && (
+              <MarkAttendanceScreen
+                sessionId={activeSessionId}
+                sharedSessionCode={sessionCode}
+                onSessionCodeChange={(newCode) => setSessionCode(newCode)}
+                isSessionExpired={isSessionExpired}
+                onSessionExpiryChange={(expired) => setIsSessionExpired(expired)}
+                studentAttendanceMarked={isStudentAttendanceMarked}
+                onNavigateBack={() => setTeacherScreen('teacher_home')}
+              />
+            )}
+          </>
+        ) : (
+          /* STUDENT FLOW */
+          <>
+            {studentScreen === 'student_home' && (
+              <>
+                <StudentHomeScreen
+                  studentName={user?.fullName?.split(' ')[0] || 'Aditya'}
+                  isAttendanceMarked={isStudentAttendanceMarked}
+                  onNavigateToMarkAttendance={() => setStudentScreen('student_attendance_entry')}
+                  onNavigateToAttendanceSummary={() => setStudentScreen('student_attendance_summary')}
+                  onNavigateToClasses={() => setTeacherTab('classes')}
+                />
+                <StudentBottomNav
+                  activeTab={studentTab}
+                  onTabChange={(tab) => {
+                    setStudentTab(tab);
+                    if (tab === 'attendance') {
+                      setStudentScreen('student_attendance_summary');
+                    } else if (tab === 'home') {
+                      setStudentScreen('student_home');
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {studentScreen === 'student_attendance_entry' && (
+              <StudentAttendanceEntryScreen
+                sessionCode={sessionCode}
+                isSessionExpired={isSessionExpired}
+                isAlreadyMarked={isStudentAttendanceMarked}
+                onSuccessSubmit={handleStudentSubmitSuccess}
+                onNavigateBack={() => setStudentScreen('student_home')}
+                onNavigateToSummary={() => setStudentScreen('student_attendance_summary')}
+              />
+            )}
+
+            {studentScreen === 'student_attendance_summary' && (
+              <>
+                <StudentAttendanceSummaryScreen
+                  isAttendanceMarked={isStudentAttendanceMarked}
                   onNavigateBack={() => setStudentScreen('student_home')}
-                  onNavigateToSummary={() => setStudentScreen('student_attendance_summary')}
+                  onNavigateToMarkAttendance={() => setStudentScreen('student_attendance_entry')}
                 />
-              )}
+                <StudentBottomNav
+                  activeTab={studentTab}
+                  onTabChange={(tab) => {
+                    setStudentTab(tab);
+                    if (tab === 'home') {
+                      setStudentScreen('student_home');
+                    }
+                  }}
+                />
+              </>
+            )}
+          </>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
 
-              {studentScreen === 'student_attendance_summary' && (
-                <>
-                  <StudentAttendanceSummaryScreen
-                    isAttendanceMarked={isStudentAttendanceMarked}
-                    onNavigateBack={() => setStudentScreen('student_home')}
-                    onNavigateToMarkAttendance={() => setStudentScreen('student_attendance_entry')}
-                  />
-                  <StudentBottomNav
-                    activeTab={studentTab}
-                    onTabChange={(tab) => {
-                      setStudentTab(tab);
-                      if (tab === 'home') {
-                        setStudentScreen('student_home');
-                      }
-                    }}
-                  />
-                </>
-              )}
-            </>
-          )}
-        </View>
-      </SafeAreaView>
+export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    EBGaramond_400Regular,
+    EBGaramond_600SemiBold,
+    EBGaramond_700Bold,
+    Barlow_400Regular,
+    Barlow_500Medium,
+    Barlow_600SemiBold,
+    Barlow_700Bold,
+  });
+
+  if (Platform.OS !== 'web' && !fontsLoaded && !fontError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1D4A25" />
+      </View>
+    );
+  }
+
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
@@ -224,6 +248,19 @@ const styles = StyleSheet.create({
   },
   brandSub: {
     marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  signOutBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
   },
   contentContainer: {
     flex: 1,

@@ -1,39 +1,59 @@
-# Current Task: Student Attendance Experience & End-to-End Loop
+# Current Task: Foundation Hardening — Authentication & Real Persistence
 
 ## Goal
 
-Implement the complete Student Attendance Experience (Concept Screens 4, 13, and 15) and close the end-to-end loop with the Teacher Attendance Flow, supported by backend verification endpoints and automated tests.
+Transition TutorZen from a UI/documentation prototype to a V1-ready foundation. Implement authentication (JWT-based identity with refresh token rotation), replace hardcoded mock data with real database persistence, and connect the mobile client with proper navigation and authentication.
 
-## Acceptance Criteria (Completed)
+## Acceptance Criteria
 
-- [x] `StudentHomeScreen.tsx` (Concept Screen 4):
-  - Greeting header ("Hello, Aditya 👋"), coaching badge ("APEX ACADEMY"), streak banner ("12-Day Attendance Streak!").
-  - Quick action grid: "Mark Attendance", "Attendance Log", "Schedule", "Assignments".
-  - Today's classes card with active class status ("Calculus & Vectors - In Session Now") and instant "Mark Attendance" CTA.
-  - Attendance overview widget (92% badge) linking to summary analysis.
-- [x] `StudentAttendanceEntryScreen.tsx` (Concept Screen 15):
-  - 6-digit tactile PIN input boxes with on-screen tactile keypad (1-9, Clear, 0, Backspace).
-  - Quick "Paste Teacher's Code (742916)" helper button for effortless testing.
-  - Option to simulate instant QR Code camera scan.
-  - Real-time verification against the Teacher's active session code (`742916`) and 5-minute expiration status.
-  - Error states: Expired session feedback banner, invalid PIN feedback, and instant success confirmation card.
-- [x] `StudentAttendanceSummaryScreen.tsx` (Concept Screen 13):
-  - Circular attendance metric card (92% cumulative rate, target 75% minimum policy notice).
-  - Stat counters trio: Present (46/47), Absent (4), Late (2).
-  - Recent attendance activity log with date, subject, and status pills (Present, Absent, Late).
-- [x] Role Switcher integration in `App.tsx`:
-  - Persistent `RoleSwitcherPill` in the header allows rapid switching between Teacher (👨‍🏫) and Student (👨‍🎓) personas.
-  - Coordinated session state: When Teacher regenerates or expires code, Student attendance entry reflects it. When Student marks attendance, Teacher's roster updates and Student's summary updates to 94%!
-- [x] Backend `StudentAttendanceController`:
-  - `POST /api/v1/students/attendance/submit`: Validates PIN or QR token against session rules via `AttendanceMarkingStrategy`.
-  - `GET /api/v1/students/{studentId}/attendance/summary`: Returns monthly percentage, total classes, and history.
-  - Tenant isolation and audit logging preserved.
-- [x] Verification:
-  - Mobile TypeScript typecheck passes with 0 errors (`tsc --noEmit`).
-  - Spring Boot JUnit tests pass 100% (24/24 tests passing).
-  - Workspace tests passing 100% (`npm run test --workspaces`).
-  - Expo Web live rendering verified on `http://localhost:8081`.
+### Backend Authentication & Security (COMPLETED)
 
-## Next Actionable Task
+- [x] `identity` module: User entity, credential storage (BCrypt), RefreshToken entity with SHA-256 token hashing, `AuthService`, and endpoints (`POST /api/v1/auth/sign-in`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/sign-out`).
+- [x] `SecurityFilterChain` configured: stateless JWT filter chain, role-based authorization (`TEACHER`, `STUDENT`, `ADMIN`), 401 unauthenticated JSON responses, and BCryptPasswordEncoder.
+- [x] `TenantFilter` updated to derive tenant strictly from verified JWT claims; unauthenticated `X-Tenant-ID` header spoofing ignored for authenticated requests.
+- [x] `V2__identity_schema.sql` Flyway migration: `users`, `user_credentials`, and `refresh_tokens` tables with foreign keys and index scoping, plus seed demo users.
+- [x] 34 backend unit and integration tests passing (`./mvnw test`) covering sign-in, token rotation, sign-out, 401 unauthenticated, 403 unauthorized, and tenant spoofing rejection.
 
-Implement the Guardian / Parent Experience (Concept Screens 10 and 11) or Offline Sync queue persistence with SQLite / WatermelonDB and conflict resolution.
+### Real Academics & Teacher Session Persistence (COMPLETED)
+
+- [x] `V3__academics_schema.sql` migration: `subjects`, `batches`, `students`, `batch_enrollments`, and `class_sessions` with seed data.
+- [x] JPA entities (`ClassSession`, `Student`, `Batch`, `AttendanceRecordRepository`) in `com.tutorzen.academics` and `com.tutorzen.attendance.domain`.
+- [x] `TeacherSessionController` connected to repositories: reads real sessions from DB, generates real session codes, and persists marked attendance records to `attendance_records` table.
+- [x] Integration tests: `TeacherSessionPersistenceTests` (37/37 backend tests passing).
+
+### Mobile Authentication & Teacher Flow Integration (COMPLETED)
+
+- [x] `apiClient.ts` handles JWT access token + refresh token, automatic 401 refresh, and authenticated API calls.
+- [x] `AuthContext.tsx` and `AuthScreen.tsx` implemented with 1-tap demo credentials (`teacher@demo.com`, `student@demo.com`).
+- [x] `TeacherHomeScreen.tsx` fetching today's sessions from backend with visual online indicator.
+- [x] `MarkAttendanceScreen.tsx` loading batch roster from backend, syncing session codes with backend DB, and submitting bulk attendance.
+- [x] `App.tsx` wired with `AuthProvider` and sign-out header action.
+
+### Student Attendance Real Persistence & Mobile Integration (ACTIVE / NEXT)
+
+- [ ] Update `StudentAttendanceController` to validate session PIN/QR against `ClassSessionRepository` and persist attendance to `AttendanceRecordRepository`.
+- [ ] Implement dynamic attendance summary calculation in `StudentAttendanceController.getStudentAttendanceSummary` from database records.
+- [ ] Wire `StudentAttendanceEntryScreen.tsx` to `apiClient.submitAttendance()` via authenticated student JWT.
+- [ ] Wire `StudentAttendanceSummaryScreen.tsx` to `apiClient` to fetch live student attendance stats.
+- [ ] Add integration tests in `apps/backend` verifying student submission persistence and summary metrics.
+
+### React Navigation (UPCOMING)
+
+- [ ] Install `@react-navigation/native`, `@react-navigation/bottom-tabs`, `@react-navigation/native-stack`.
+- [ ] Replace manual `useState` routing in `App.tsx` with proper navigation stacks for Auth, Teacher, and Student.
+
+### Security checklist (Verified)
+
+- [x] No tenant ID is trusted from an unauthenticated source for authenticated requests.
+- [x] Passwords are never logged or returned in any response (BCrypt hashed).
+- [x] JWT secret externalized via environment variable with fallback for dev.
+- [x] All protected endpoints return 401 when JWT is missing or invalid.
+- [x] Token rotation on refresh: used refresh tokens are immediately revoked.
+
+## Out of scope for this task
+
+- Guardian/Parent flow (deferred to post-V1)
+- Offline sync queue persistence with WatermelonDB (deferred to post-V1)
+- Fees, materials, assignments, assessments
+- Platform Super Admin
+

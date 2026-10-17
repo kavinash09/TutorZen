@@ -24,4 +24,6 @@ server:
 tutorzen:
   security:
     jwt-secret: ${JWT_SECRET:dev-secret-key-must-be-replaced-in-production-environment-32chars}
+    jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:900}          # 15 minutes
+    jwt-refresh-expiry-seconds: ${JWT_REFRESH_EXPIRY_SECONDS:604800}  # 7 days
 

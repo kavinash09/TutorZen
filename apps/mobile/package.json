@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit"
+    "test": "npx tsx --test src/__tests__/**/*.test.ts"
   },
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.2.3",

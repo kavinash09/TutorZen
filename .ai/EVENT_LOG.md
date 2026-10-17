@@ -54,3 +54,67 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** Clean TypeScript typecheck across `@tutorzen/mobile` (`tsc --noEmit`, 0 errors), 24 passing JUnit tests in `apps/backend` (`./mvnw test`, 0 failures), 6 passing design-token tests (`npx tsx --test`, 0 failures), and live Expo dev server on `http://localhost:8081`.
 - **Outcome:** Complete end-to-end loop verified between Teacher and Student roles, with coordinated session code, expiration enforcement, and instant attendance marking updates.
 - **Follow-up:** Implement Guardian/Parent flow or Offline Sync queue persistence with conflict resolution.
+
+---
+
+## Project Strategy & AI Workflow Audit
+
+- **Date/time:** 2026-10-18T00:50:00+05:30
+- **Type:** `DOCS`
+- **Summary:** Conducted a comprehensive project strategy, architecture, documentation, and AI workflow audit. Inspected all source files, migration scripts, dependencies, tests, and documentation. Found significant gap between documentation claims (VERIFIED status) and actual implementation (prototype with hardcoded data). Corrected Spring Boot version (3.5.x → 3.4.3). Updated PROJECT_STATE.md, PROJECT_CONTEXT.md, CURRENT_TASK.md, and DECISIONS.md. Created CLAUDE.md, docs/product/V1_SCOPE.md, docs/roadmap/IMPLEMENTATION_ROADMAP.md, and docs/audits/project-strategy-and-ai-workflow-audit.md.
+- **Evidence:** Inspected `pom.xml` (Spring Boot 3.4.3), `V1__init_schema.sql` (only tenants + attendance_records tables), all controller files (hardcoded mock data), `TenantFilter.java` (unauthenticated header trust), `App.tsx` (no React Navigation, manual useState routing), `AttendanceSyncService.java` (ConcurrentHashMap — in-memory only). Tests re-run: 24/24 backend, 6/6 token tests.
+- **Outcome:** Documentation system now accurately reflects prototype state. Critical security gaps documented. V1 scope boundary defined. AI context recovery improved.
+- **Follow-up:** Implement CURRENT_TASK.md — authentication module and real persistence.
+
+---
+
+## Phase 1 Backend Authentication & Security Implementation
+
+- **Date/time:** 2026-10-18T01:08:00+05:30
+- **Type:** `IMPLEMENTATION`
+- **Summary:** Implemented the complete backend Identity and Authentication module per ADR-0008, ADR-0009, and ADR-0010. Created `V2__identity_schema.sql` (users, user_credentials, refresh_tokens tables and seed demo accounts). Implemented `User`, `UserCredential`, and `RefreshToken` JPA entities and repositories. Implemented `JwtService` using JJWT 0.12.6 with 15-minute access tokens and 7-day refresh tokens. Built `AuthService` with BCrypt credential checks, SHA-256 refresh token hashing, and automatic token rotation on refresh. Configured Spring Security `SecurityConfig` with stateless `SecurityFilterChain`, 401 JSON entry point, role-based protection (`TEACHER`, `STUDENT`, `ADMIN`), and updated `TenantFilter` to extract verified tenant from JWT claims to prevent tenant header spoofing.
+- **Evidence:** 34 unit and integration tests passing (`./mvnw test`) with 0 failures and 0 errors, including new test suites `AuthControllerTests` and `SecurityIntegrationTests`. Design token tests (12/12) and mobile typecheck (`tsc --noEmit`) passing cleanly.
+- **Outcome:** Backend authentication and security foundation is operational and verified. Protected endpoints strictly require valid JWTs.
+- **Follow-up:** Implement Mobile Authentication & Navigation (React Navigation + AuthScreen + secure JWT storage), followed by Academics and Session persistence.
+
+---
+
+## Teacher Flow Persistence, Mobile Auth & Live Integration (Options A, B, C)
+
+- **Date/time:** 2026-10-18T01:30:00+05:30
+- **Type:** `IMPLEMENTATION`
+- **Summary:** Executed Option A (Real Backend Persistence for Sessions/Attendance), Option B (Mobile Auth & API Client Integration), and Option C (Live Dev Preview & End-to-End Verification).
+  - **Option A:** Created `V3__academics_schema.sql` (subjects, batches, students, batch enrollments, class sessions), implemented JPA entities and repositories in `com.tutorzen.academics` and `com.tutorzen.attendance.domain.AttendanceRecordRepository`. Wired `TeacherSessionController` to read live session rosters from database, persist real attendance records on save, and update session code/QR expiry in DB. Added `TeacherSessionPersistenceTests`.
+  - **Option B:** Built `apiClient.ts` with automatic 401 token refresh interceptor, `AuthContext.tsx`, and `AuthScreen.tsx` with 1-tap demo logins for Teacher and Student. Wired `TeacherHomeScreen` to live sessions API and `MarkAttendanceScreen` to database roster and save API. Wrapped `App.tsx` with `AuthProvider`.
+  - **Option C:** Verified PostgreSQL Docker container, Spring Boot backend daemon on port 8080, and Expo dev server daemon on port 8081. Executed live curl tests confirming JWT authentication and session retrieval.
+- **Evidence:** 37/37 backend JUnit tests passing (`./mvnw test`), 12/12 design token tests passing (`npx tsx --test`), mobile TypeScript check clean (`npx tsc --noEmit`), and verified live HTTP 200 responses on backend and Expo dev server.
+- **Outcome:** Teacher flow is now backed by real database persistence and JWT-authenticated APIs instead of mock data.
+- **Follow-up:** Implement Student Flow persistence (validate session code and write attendance to DB) and dynamic summary metrics.
+
+---
+
+## Backend CORS Configuration for Expo Web Client
+
+- **Date/time:** 2026-10-18T01:36:00+05:30
+- **Type:** `FIX`
+- **Summary:** Configured `CorsConfigurationSource` in `SecurityConfig.java` to support browser preflight `OPTIONS` requests from Expo web development server (`http://localhost:8081` and local dev origin patterns). Explicitly permitted `HttpMethod.OPTIONS` and exposed authentication headers. Added integration test `corsPreflightOptionsRequestAllowedForLocalDevOrigin` in `SecurityIntegrationTests.java`.
+- **Evidence:** 38/38 backend tests passing (`./mvnw test`). Verified with live `OPTIONS` preflight and `POST` sign-in curl commands returning `Access-Control-Allow-Origin: http://localhost:8081` and `Access-Control-Allow-Credentials: true`.
+- **Outcome:** Browser CORS preflight error resolved; Expo web client can now communicate seamlessly with the Spring Boot backend.
+
+---
+
+## Individual Student Status Marking & Roster Normalization Fix
+
+- **Date/time:** 2026-10-18T01:45:00+05:30
+- **Type:** `FIX`
+- **Summary:** Investigated and resolved the issue where toggling one student's attendance marked all students in the roster. Root cause: `RosterStudentDto` exposed `id` and `defaultStatus`, while `apiClient.getSessionRoster` mapped `item.studentId` and `item.status`, causing all students in the roster state to have `id: undefined`. When `toggleStudentStatus(id)` checked `student.id === id`, `undefined === undefined` evaluated to true for every student, flipping the entire batch at once.
+  - **Fix 1 (Backend):** Updated `RosterStudentDto.java` with aliases for both `id`/`studentId` and `status`/`defaultStatus`.
+  - **Fix 2 (Mobile Utility):** Created pure domain utility `rosterUtils.ts` with `normalizeRosterItem`, `toggleStudentStatus`, `setStudentStatus`, `markAllStudents`, `calculateRosterCounts`, and `filterRoster`, strictly preventing state mutation if `studentId` is blank/empty.
+  - **Fix 3 (UI & Client):** Updated `MarkAttendanceScreen.tsx` with dedicated P (Present) and A (Absent) tactile tap targets alongside card/checkbox toggle, plus "All Present" and "All Absent" fast actions.
+  - **Unit Tests:** Created `apps/mobile/src/__tests__/rosterUtils.test.ts` (15/15 tests passing with Node test runner).
+  - **Integration Tests:** Added `getSessionRosterReturnsExplicitIdStudentIdAndStatus` and `markAttendanceSelectivelyMarksIndividualStudentsAndReflectsInRoster` in `TeacherSessionPersistenceTests.java` (40/40 backend tests passing).
+- **Evidence:** 40/40 backend tests passing (`./mvnw test`), 15/15 mobile unit tests passing (`npm test`), mobile typecheck clean (`npx tsc --noEmit`), and verified with live curl calls confirming selective student attendance persistence.
+- **Outcome:** Individual student marking operates strictly on the targeted student.
+
+
+

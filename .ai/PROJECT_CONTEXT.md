@@ -33,14 +33,32 @@ Roles and permissions must be verified against current product requirements; thi
 ## Technical baseline (verify before changing)
 
 - Java 21
-- Spring Boot 3.5.x
-- PostgreSQL
-- Flyway migrations
-- React Native + TypeScript + Expo
-- OCI deployment direction
+- Spring Boot 3.4.x (actual: **3.4.3** — verified in `apps/backend/pom.xml`; do not assume 3.5.x)
+- PostgreSQL (local: `infrastructure/docker/docker-compose.yml`)
+- Flyway migrations (one migration applied: `V1__init_schema.sql`)
+- React Native + TypeScript + Expo (managed workflow)
+- OCI deployment direction (SSH key at `oraclemachine/ssh-key-2026-10-17.key`)
 - Modular monolith
 
 Do not assume these are present in the current repository until inspected.
+
+## V1 scope boundary (authoritative)
+
+V1 is the first release to real users. It must include:
+
+1. **Authentication and session management** — JWT-based, server-enforced. Currently missing; Spring Security dependency exists but is not configured.
+2. **Real persistence** — At minimum: identity, tenant, and attendance records read/written through the database. Currently all business data is hardcoded or in-memory.
+3. **Tenant isolation** — Tenant ID must be derived from authenticated session, not a client-supplied HTTP header (`X-Tenant-ID`). Currently the `TenantFilter` trusts any header value.
+4. **At least one complete end-to-end user journey** — Teacher marks attendance for a real session; record is persisted and retrievable. Currently all data is mocked.
+5. **React Navigation library** — Manual `useState` screen switching is not production-ready for a multi-screen app.
+
+Features that can be deferred beyond V1:
+- Guardian/Parent flow
+- Reports and exports
+- Notifications (beyond basic)
+- Learning materials and assignments
+- Fees module
+- Offline sync queue (manual attendance marking acceptable for V1)
 
 ## Out of scope until explicitly approved
 
