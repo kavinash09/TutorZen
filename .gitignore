@@ -11,6 +11,8 @@ node_modules/
 dist/
 web-build/
 .metro-cache/
+apps/mobile/android/
+apps/mobile/ios/
 
 # Java / Maven
 target/

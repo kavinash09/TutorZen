@@ -9,9 +9,13 @@
       "backgroundColor": "#FDFBF7"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tutorzen.app",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "com.tutorzen.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1D4A25"
       }

@@ -37,9 +37,9 @@ Transition TutorZen from a UI/documentation prototype to a V1-ready foundation. 
 - [x] `TeacherMaterialsController`: `GET /api/v1/teacher/materials`, `POST`, `DELETE`, and `GET /subjects`.
 - [x] 6 integration tests in `TeacherMaterialsPersistenceTests.java` (46/46 total backend tests passing).
 - [x] Mobile `apiClient.ts` methods for materials (`getMaterials`, `uploadMaterial`, `deleteMaterial`, `getSubjects`).
-- [x] `UploadNotesScreen.tsx` with Claymorphic aesthetic, subject pills, file presets picker, and published notes list with delete action.
-- [x] UI field validation: Clicking publish without required title highlights input border and background in red, displays "Required" indicator & helper caption, and clears immediately on typing.
-- [x] Unit tests in `materials.test.ts` (19/19 total mobile unit tests passing).
+- [x] `UploadNotesScreen.tsx` with Claymorphic aesthetic, subject pills, interactive file upload dropzone, native OS file picker, and published notes list with delete action.
+- [x] UI field validation: Clicking publish without required title or attached file highlights inputs in red with "Required" indicators, warning captions, and auto-clears on input/upload.
+- [x] Unit tests in `materials.test.ts` (20/20 total mobile unit tests passing).
 
 
 ### Student Attendance Real Persistence & Mobile Integration (ACTIVE / NEXT)

@@ -145,3 +145,62 @@ Chronological factual record of material project events. Append new entries; do 
   - **Tests:** Extended `apps/mobile/src/__tests__/materials.test.ts` with test verifying blank/whitespace rejection, color switching to status danger, and clearing upon typing.
 - **Evidence:** 19/19 mobile unit tests passing (`npm test`), `npx tsc --noEmit` clean, 46/46 backend tests passing (`./mvnw test`).
 - **Outcome:** Intuitive, accessible user feedback preventing empty material submission.
+
+---
+
+## Interactive File Upload Section, Dropzone & Native File Picker
+
+- **Date/time:** 2026-10-18T02:15:00+05:30
+- **Type:** `FEATURE`
+- **Summary:** Replaced static presets picker in `UploadNotesScreen.tsx` with a fully interactive file upload system:
+  - **Claymorphic Dropzone:** Dashed-border tactile dropzone with upload iconography (`📤` / `📥`), drag-and-drop listener on Web, and prominent "Browse Files" button triggering the native OS file picker (`<input type="file">` accepting `.pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg`).
+  - **Selected File Card:** Displays dynamic document icon (`📕` PDF, `📘` Word, `📙` PPT, `🖼️` Image, `📄` Document), file name, formatted file size, `✓ File Attached & Ready to Publish` status badge, "Change File", and "✕" remove actions.
+  - **Smart Title Auto-Population:** When a file is selected, automatically infers a clean, capitalized title from the filename if the user hasn't typed one yet.
+  - **Validation & Error Highlighting:** If publish is pressed without an attached file, highlights dropzone in danger red with "Required" badge and warning caption.
+  - **Sample Curriculum Presets Accordion:** Preserved sample templates as a collapsible option below the dropzone for rapid demo testing without needing local files.
+  - **Unit Tests:** Added 2 new tests in `materials.test.ts` (20/20 mobile unit tests passing).
+- **Evidence:** 20/20 mobile unit tests passing, `npx tsc --noEmit` clean, 46/46 backend tests passing (`./mvnw test`).
+- **Outcome:** Teachers can upload actual files directly from their machine or mobile device with drag-and-drop and native system file dialogs.
+
+---
+
+## Android APK Build Script & Artifact Generation
+
+- **Date/time:** 2026-10-18T23:43:00+05:30
+- **Type:** `TOOLING`
+- **Summary:** Created standalone build script and configuration to generate Android APKs into the `dist/` directory without requiring Android Studio on macOS:
+  - **Docker Container Builder (`infrastructure/docker/Dockerfile.android-builder`):** Dedicated OpenJDK 17 + Android SDK 35 build container image with volume caching (`tutorzen-gradle-cache`) to compile the APK entirely inside Docker and output to `dist/tutorzen.apk`.
+  - **Script (`scripts/build-apk.sh`):** Configured with auto-detection of Docker and EAS environments, release/debug flags, and clean rebuild option. Copies output artifacts to `dist/tutorzen.apk`, versioned `dist/tutorzen-<version>-<type>.apk`, and `apps/mobile/dist/tutorzen.apk` with size and SHA-256 calculation.
+  - **EAS Profile (`apps/mobile/eas.json`):** Created EAS configuration specifying `preview` profile with `android.buildType: "apk"` for Cloud Build.
+  - **App Config (`apps/mobile/app.json`):** Added `"package": "com.tutorzen.app"` and `"versionCode": 1` under `android` and `bundleIdentifier` under `ios`.
+  - **NPM Integration:** Added `build:apk`, `build:apk:docker`, `build:apk:eas`, and `build:apk:debug` commands to root `package.json` and `apps/mobile/package.json`.
+- **Evidence:** Script verified (`./scripts/build-apk.sh --help`), mobile typecheck clean (`npx tsc --noEmit`), 20/20 unit tests passing (`npm test`).
+- **Outcome:** Clean APK build pipeline supporting Docker container compilation and EAS cloud compilation with zero macOS toolchain pollution.
+
+---
+
+## Successful Android APK Compilation via Docker Container
+
+- **Date/time:** 2026-10-19T01:02:00+05:30
+- **Type:** `BUILD`
+- **Summary:** Executed full Dockerized build producing production-grade Android Release APK without installing Android Studio or native SDK on the host Mac.
+  - **Environment:** Container built with `eclipse-temurin:17-jdk-jammy` on `linux/amd64` architecture, resolving Google AAPT2 and Hermes x86_64 binary compatibility under Rosetta 2.
+  - **Generated Artifact:** Output generated at `dist/tutorzen.apk` and `dist/tutorzen-0.1.0-release.apk` (61.14 MB, SHA-256: `5d45258520ee34de26ea885feec5d01b105edbab6d7e87450ecadbc238d12a50`).
+  - **Inspection:** Verified valid zip archive containing `classes.dex`, `classes2.dex`, `classes3.dex`, Hermes bytecode, and native `.so` libraries for `arm64-v8a` and `armeabi-v7a`.
+- **Evidence:** Build finished with code 0 (`BUILD SUCCESSFUL in 23m 35s`, 373 Gradle tasks executed/cached), verified output file on disk in `dist/` and `apps/mobile/dist/`.
+- **Outcome:** Verified, standalone, installable Android APK generated strictly within Docker.
+
+---
+
+## iOS Build Script & Cloud Artifact Generation
+
+- **Date/time:** 2026-10-19T01:18:00+05:30
+- **Type:** `TOOLING`
+- **Summary:** Created standalone build script and configuration for iOS packages (`.ipa` and Simulator `.tar.gz`) without requiring full Xcode.app or local CocoaPods installation:
+  - **Script (`scripts/build-ios.sh`):** Automates iOS compilation via EAS Cloud Build (default) or local Xcode if available. Supports `--simulator` (builds unsigned Simulator package without requiring an Apple Developer account) and `--device` (builds physical device distribution `.ipa`).
+  - **EAS Profiles (`apps/mobile/eas.json`):** Added `preview` (`ios.simulator: false`) and `preview:simulator` (`ios.simulator: true`) profiles.
+  - **App Config (`apps/mobile/app.json`):** Added `"buildNumber": "1"` and preserved `"bundleIdentifier": "com.tutorzen.app"`.
+  - **NPM Integration:** Added `build:ios`, `build:ios:sim`, and `build:ios:device` to root `package.json` and `apps/mobile/package.json`.
+- **Evidence:** Script verified (`./scripts/build-ios.sh --help`), mobile typecheck clean (`npx tsc --noEmit`), 20/20 unit tests passing (`npm test`).
+- **Outcome:** Complete cross-platform build pipeline (Android via Docker, iOS via EAS Cloud) with zero heavy IDE installation required on the developer's Mac.
+

@@ -28,8 +28,8 @@ Last verified: 2026-10-18
   - `V4__materials_schema.sql` migration: `learning_materials` table with indexes and seed data.
   - `Subject` JPA entity and repository in `com.tutorzen.academics`.
   - `LearningMaterial` JPA entity, repository, and `TeacherMaterialsController` (`GET`, `POST`, `DELETE`, `GET /subjects`).
-  - `UploadNotesScreen.tsx` with subject selector, sample file attachment presets, published notes list with delete action, and red border/background highlight validation on required fields.
-  - 19 mobile unit tests passing (`npm test`), 46 backend tests passing (`./mvnw test`).
+  - `UploadNotesScreen.tsx` with subject selector, interactive file upload dropzone, native OS file picker, attached file preview, published notes list with delete action, and red border/background highlight validation on required fields.
+  - 20 mobile unit tests passing (`npm test`), 46 backend tests passing (`./mvnw test`).
   - Quick action tile on `TeacherHomeScreen` and navigation state in `App.tsx`.
 - [VERIFIED-PROTOTYPE] Implement Student Flow on mobile: StudentHomeScreen (Screen 4), StudentAttendanceEntryScreen (Screen 15), StudentAttendanceSummaryScreen (Screen 13), StudentBottomNav, and RoleSwitcherPill (typecheck passing). **Backend endpoint integration for student submission in progress.**
 - [VERIFIED] Establish `infrastructure/docker/docker-compose.yml` for local PostgreSQL database. Both backend and Expo servers verified running.

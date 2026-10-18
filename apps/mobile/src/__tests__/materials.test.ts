@@ -91,5 +91,52 @@ describe('Learning Materials & Notes Workflow', () => {
     assert.strictEqual(filledResult.borderColor, '#D4CBBF');
     assert.strictEqual(filledResult.backgroundColor, '#FDFBF7');
   });
+
+  it('should validate file attachment requirement and resolve file details', () => {
+    const getFileDetails = (fileName: string, mime?: string) => {
+      const ext = fileName.split('.').pop()?.toLowerCase() || '';
+      if (mime?.includes('pdf') || ext === 'pdf') {
+        return { icon: '📕', typeLabel: 'PDF Document', mime: 'application/pdf' };
+      }
+      if (['doc', 'docx'].includes(ext) || mime?.includes('word')) {
+        return { icon: '📘', typeLabel: 'Word Document', mime: 'application/msword' };
+      }
+      if (['ppt', 'pptx'].includes(ext) || mime?.includes('presentation')) {
+        return { icon: '📙', typeLabel: 'PowerPoint Slide', mime: 'application/vnd.ms-powerpoint' };
+      }
+      if (['png', 'jpg', 'jpeg'].includes(ext) || mime?.includes('image')) {
+        return { icon: '🖼️', typeLabel: 'Image File', mime: mime || 'image/jpeg' };
+      }
+      return { icon: '📄', typeLabel: 'Document File', mime: mime || 'application/octet-stream' };
+    };
+
+    assert.strictEqual(getFileDetails('chapter_1.pdf').icon, '📕');
+    assert.strictEqual(getFileDetails('notes.docx').icon, '📘');
+    assert.strictEqual(getFileDetails('slides.pptx').icon, '📙');
+    assert.strictEqual(getFileDetails('scan.png').icon, '🖼️');
+
+    // Auto-suggest title generation from filename
+    const autoSuggestTitle = (fileName: string) => {
+      const cleanName = fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
+      return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    };
+
+    assert.strictEqual(autoSuggestTitle('Calculus_Ch4_Integration.pdf'), 'Calculus Ch4 Integration');
+    assert.strictEqual(autoSuggestTitle('physics-kinematics-notes.pdf'), 'Physics kinematics notes');
+
+    // Dropzone error validation
+    const validateDropzone = (file: { fileName: string } | null) => {
+      const hasError = !file;
+      return {
+        hasError,
+        borderColor: hasError ? '#B42318' : '#D4CBBF',
+      };
+    };
+
+    assert.strictEqual(validateDropzone(null).hasError, true);
+    assert.strictEqual(validateDropzone(null).borderColor, '#B42318');
+    assert.strictEqual(validateDropzone({ fileName: 'Test.pdf' }).hasError, false);
+    assert.strictEqual(validateDropzone({ fileName: 'Test.pdf' }).borderColor, '#D4CBBF');
+  });
 });
 

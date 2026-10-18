@@ -10,7 +10,14 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "build:apk": "./scripts/build-apk.sh",
+    "build:apk:docker": "./scripts/build-apk.sh --mode docker",
+    "build:apk:debug": "./scripts/build-apk.sh --debug",
+    "build:apk:eas": "./scripts/build-apk.sh --mode eas",
+    "build:ios": "./scripts/build-ios.sh",
+    "build:ios:sim": "./scripts/build-ios.sh --simulator",
+    "build:ios:device": "./scripts/build-ios.sh --device"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

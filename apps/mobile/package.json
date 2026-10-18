@@ -5,11 +5,18 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx --test src/__tests__/**/*.test.ts"
+    "test": "npx tsx --test src/__tests__/**/*.test.ts",
+    "build:apk": "../../scripts/build-apk.sh",
+    "build:apk:docker": "../../scripts/build-apk.sh --mode docker",
+    "build:apk:debug": "../../scripts/build-apk.sh --debug",
+    "build:apk:eas": "../../scripts/build-apk.sh --mode eas",
+    "build:ios": "../../scripts/build-ios.sh",
+    "build:ios:sim": "../../scripts/build-ios.sh --simulator",
+    "build:ios:device": "../../scripts/build-ios.sh --device"
   },
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.2.3",

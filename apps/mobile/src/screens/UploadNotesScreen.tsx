@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { Heading, BodyText } from '../components/Typography';
@@ -26,6 +27,30 @@ interface DocumentPreset {
   sizeBytes: number;
   label: string;
 }
+
+export interface AttachedFile {
+  fileName: string;
+  fileType: string;
+  sizeBytes: number;
+  isRealUpload: boolean;
+}
+
+const getFileDetails = (fileName: string, mime?: string) => {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (mime?.includes('pdf') || ext === 'pdf') {
+    return { icon: '📕', typeLabel: 'PDF Document', mime: 'application/pdf' };
+  }
+  if (['doc', 'docx'].includes(ext) || mime?.includes('word')) {
+    return { icon: '📘', typeLabel: 'Word Document', mime: 'application/msword' };
+  }
+  if (['ppt', 'pptx'].includes(ext) || mime?.includes('presentation')) {
+    return { icon: '📙', typeLabel: 'PowerPoint Slide', mime: 'application/vnd.ms-powerpoint' };
+  }
+  if (['png', 'jpg', 'jpeg', 'webp'].includes(ext) || mime?.includes('image')) {
+    return { icon: '🖼️', typeLabel: 'Image File', mime: mime || 'image/jpeg' };
+  }
+  return { icon: '📄', typeLabel: 'Document File', mime: mime || 'application/octet-stream' };
+};
 
 const DOCUMENT_PRESETS: DocumentPreset[] = [
   {
@@ -65,12 +90,89 @@ export const UploadNotesScreen: React.FC<UploadNotesScreenProps> = ({
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(initialSubjectId);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [selectedPreset, setSelectedPreset] = useState<DocumentPreset>(DOCUMENT_PRESETS[0]);
-  const [customFileName, setCustomFileName] = useState<string>('');
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [showPresets, setShowPresets] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [titleError, setTitleError] = useState<boolean>(false);
+  const [fileError, setFileError] = useState<boolean>(false);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
+  const dropzoneRef = useRef<any>(null);
+
+  const handleSelectedFile = (file: { name: string; size: number; type?: string }) => {
+    const details = getFileDetails(file.name, file.type);
+    setAttachedFile({
+      fileName: file.name,
+      fileType: details.mime,
+      sizeBytes: file.size,
+      isRealUpload: true,
+    });
+    setFileError(false);
+
+    // Auto-suggest title if user hasn't typed one yet
+    if (!title.trim()) {
+      const cleanName = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[_-]+/g, ' ')
+        .trim();
+      const capitalized = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      setTitle(capitalized);
+      setTitleError(false);
+    }
+  };
+
+  const openFilePicker = () => {
+    if (typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg';
+      input.onchange = (e: any) => {
+        const file = e.target?.files?.[0];
+        if (file) {
+          handleSelectedFile(file);
+        }
+      };
+      input.click();
+    }
+  };
+
+  // Drag and drop listener on web dropzone
+  useEffect(() => {
+    if (Platform.OS === 'web' && dropzoneRef.current) {
+      const el = dropzoneRef.current;
+      const onDragOver = (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+      };
+      const onDragLeave = (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+      };
+      const onDrop = (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+          handleSelectedFile(files[0]);
+        }
+      };
+
+      el.addEventListener('dragover', onDragOver);
+      el.addEventListener('dragleave', onDragLeave);
+      el.addEventListener('drop', onDrop);
+
+      return () => {
+        el.removeEventListener('dragover', onDragOver);
+        el.removeEventListener('dragleave', onDragLeave);
+        el.removeEventListener('drop', onDrop);
+      };
+    }
+  }, [title]);
 
   // Materials listing
   const [materials, setMaterials] = useState<LearningMaterialItem[]>([]);
@@ -105,33 +207,45 @@ export const UploadNotesScreen: React.FC<UploadNotesScreenProps> = ({
   }, [selectedSubjectId]);
 
   const handleUpload = async () => {
+    let hasError = false;
+
     if (!title.trim()) {
       setTitleError(true);
-      setErrorBanner('Please enter a note title before publishing');
+      hasError = true;
+    } else {
+      setTitleError(false);
+    }
+
+    if (!attachedFile) {
+      setFileError(true);
+      hasError = true;
+    } else {
+      setFileError(false);
+    }
+
+    if (hasError) {
+      setErrorBanner('Please enter a note title and upload/select a file before publishing');
       setTimeout(() => setErrorBanner(null), 3500);
       return;
     }
 
-    setTitleError(false);
-    const fileName = customFileName.trim() ? customFileName.trim() : selectedPreset.fileName;
     setIsUploading(true);
     setErrorBanner(null);
-
 
     try {
       const newMaterial = await apiClient.uploadMaterial({
         subjectId: selectedSubjectId,
         title: title.trim(),
         description: description.trim() || undefined,
-        fileName,
-        fileType: selectedPreset.fileType,
-        fileSizeBytes: selectedPreset.sizeBytes,
+        fileName: attachedFile!.fileName,
+        fileType: attachedFile!.fileType,
+        fileSizeBytes: attachedFile!.sizeBytes,
       });
 
       setMaterials((prev) => [newMaterial, ...prev]);
       setTitle('');
       setDescription('');
-      setCustomFileName('');
+      setAttachedFile(null);
       setSuccessBanner(`✓ "${newMaterial.title}" published to student repository!`);
       setTimeout(() => setSuccessBanner(null), 4000);
     } catch (err: any) {
@@ -361,57 +475,219 @@ export const UploadNotesScreen: React.FC<UploadNotesScreenProps> = ({
             />
           </View>
 
-          {/* Document Attachment Picker */}
+          {/* File Upload Section */}
           <View style={{ marginBottom: theme.spacing[4] }}>
-            <BodyText variant="xs" weight="semiBold" color={theme.colors.ink.secondary} style={{ marginBottom: 6 }}>
-              Select File / Sample Attachment
-            </BodyText>
+            <View style={styles.labelRow}>
+              <BodyText
+                variant="xs"
+                weight="semiBold"
+                color={fileError ? theme.colors.status.danger : theme.colors.ink.secondary}
+              >
+                Upload Document / Notes File *
+              </BodyText>
+              {fileError && (
+                <BodyText variant="xs" weight="semiBold" color={theme.colors.status.danger}>
+                  Required
+                </BodyText>
+              )}
+            </View>
 
-            <View style={styles.presetsContainer}>
-              {DOCUMENT_PRESETS.map((preset) => {
-                const isSelected = selectedPreset.fileName === preset.fileName;
-                return (
-                  <TouchableOpacity
-                    key={preset.fileName}
-                    onPress={() => setSelectedPreset(preset)}
-                    activeOpacity={0.7}
+            {!attachedFile ? (
+              // Empty State: Claymorphic File Upload Dropzone
+              <View
+                ref={dropzoneRef}
+                style={[
+                  styles.dropzone,
+                  {
+                    borderColor: fileError
+                      ? theme.colors.status.danger
+                      : isDragging
+                      ? theme.colors.forest[700]
+                      : theme.colors.border.strong,
+                    backgroundColor: fileError
+                      ? theme.colors.status.dangerLight
+                      : isDragging
+                      ? theme.colors.forest[50]
+                      : theme.colors.surface.elevated,
+                    borderRadius: theme.radii.control,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={openFilePicker}
+                  style={styles.dropzoneContent}
+                >
+                  <View
                     style={[
-                      styles.presetItem,
+                      styles.uploadIconCircle,
                       {
-                        backgroundColor: isSelected
-                          ? theme.colors.forest[50]
-                          : theme.colors.surface.muted,
-                        borderColor: isSelected
-                          ? theme.colors.forest[700]
-                          : theme.colors.border.subtle,
-                        borderRadius: theme.radii.control,
+                        backgroundColor: fileError
+                          ? theme.colors.status.dangerLight
+                          : theme.colors.forest[100],
                       },
                     ]}
                   >
-                    <BodyText variant="sm">
-                      {preset.fileType.includes('pdf') ? '📕' : '🖼️'}
+                    <BodyText variant="lead">
+                      {isDragging ? '📥' : '📤'}
                     </BodyText>
-                    <View style={{ flex: 1, marginLeft: 8 }}>
-                      <BodyText
-                        variant="xs"
-                        weight={isSelected ? 'bold' : 'regular'}
-                        color={isSelected ? theme.colors.forest[950] : theme.colors.ink.primary}
-                      >
-                        {preset.fileName}
-                      </BodyText>
-                      <BodyText variant="xs" color={theme.colors.ink.muted}>
-                        {formatFileSize(preset.sizeBytes)} • {preset.fileType.includes('pdf') ? 'PDF Document' : 'Image Scan'}
-                      </BodyText>
-                    </View>
-                    {isSelected && (
-                      <BodyText variant="xs" weight="bold" color={theme.colors.forest[800]}>
-                        ✓ Selected
-                      </BodyText>
-                    )}
+                  </View>
+
+                  <Heading level={3} style={{ marginTop: 4, fontSize: 16 }}>
+                    {isDragging ? 'Drop file here' : 'Choose a file or drag & drop'}
+                  </Heading>
+
+                  <BodyText
+                    variant="xs"
+                    color={theme.colors.ink.muted}
+                    style={{ marginTop: 4, textAlign: 'center' }}
+                  >
+                    Supports PDF, DOC, DOCX, PPT, TXT, PNG, JPG (up to 25 MB)
+                  </BodyText>
+
+                  <View style={{ marginTop: 12 }}>
+                    <TactileButton
+                      title="Browse Files"
+                      variant="secondary"
+                      onPress={openFilePicker}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Attached File Preview Card
+              <View
+                style={[
+                  styles.attachedFileCard,
+                  {
+                    borderColor: theme.colors.forest[500],
+                    backgroundColor: theme.colors.forest[50],
+                    borderRadius: theme.radii.control,
+                  },
+                ]}
+              >
+                <View style={styles.attachedIconBox}>
+                  <BodyText variant="lead">
+                    {getFileDetails(attachedFile.fileName, attachedFile.fileType).icon}
+                  </BodyText>
+                </View>
+
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <BodyText variant="sm" weight="bold" color={theme.colors.forest[950]} numberOfLines={1}>
+                    {attachedFile.fileName}
+                  </BodyText>
+                  <BodyText variant="xs" color={theme.colors.forest[800]} style={{ marginTop: 2 }}>
+                    {formatFileSize(attachedFile.sizeBytes)} • {getFileDetails(attachedFile.fileName, attachedFile.fileType).typeLabel}
+                  </BodyText>
+                  <BodyText variant="xs" weight="semiBold" color={theme.colors.status.success} style={{ marginTop: 4 }}>
+                    ✓ File Attached & Ready to Publish
+                  </BodyText>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                  <TouchableOpacity
+                    onPress={openFilePicker}
+                    activeOpacity={0.7}
+                    style={[styles.smallActionBtn, { borderColor: theme.colors.forest[700] }]}
+                  >
+                    <BodyText variant="xs" weight="semiBold" color={theme.colors.forest[800]}>
+                      Change
+                    </BodyText>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                  <TouchableOpacity
+                    onPress={() => setAttachedFile(null)}
+                    activeOpacity={0.7}
+                    style={[styles.smallActionBtn, { borderColor: theme.colors.border.strong }]}
+                  >
+                    <BodyText variant="xs" weight="semiBold" color={theme.colors.status.danger}>
+                      ✕
+                    </BodyText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {fileError && (
+              <BodyText
+                variant="xs"
+                color={theme.colors.status.danger}
+                weight="medium"
+                style={{ marginTop: 4 }}
+              >
+                ⚠ Please upload or select a notes file to publish.
+              </BodyText>
+            )}
+
+            {/* Quick Sample Presets Accordion */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowPresets(!showPresets)}
+              style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}
+            >
+              <BodyText variant="xs" weight="semiBold" color={theme.colors.forest[800]}>
+                {showPresets ? '▼ Hide curriculum sample templates' : '▶ Or choose from sample curriculum templates'}
+              </BodyText>
+            </TouchableOpacity>
+
+            {showPresets && (
+              <View style={[styles.presetsContainer, { marginTop: 8 }]}>
+                {DOCUMENT_PRESETS.map((preset) => {
+                  const isSelected = attachedFile?.fileName === preset.fileName;
+                  return (
+                    <TouchableOpacity
+                      key={preset.fileName}
+                      onPress={() => {
+                        setAttachedFile({
+                          fileName: preset.fileName,
+                          fileType: preset.fileType,
+                          sizeBytes: preset.sizeBytes,
+                          isRealUpload: false,
+                        });
+                        setFileError(false);
+                        if (!title.trim()) {
+                          setTitle(preset.label.split('(')[0].trim());
+                          setTitleError(false);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                      style={[
+                        styles.presetItem,
+                        {
+                          backgroundColor: isSelected
+                            ? theme.colors.forest[50]
+                            : theme.colors.surface.muted,
+                          borderColor: isSelected
+                            ? theme.colors.forest[700]
+                            : theme.colors.border.subtle,
+                          borderRadius: theme.radii.control,
+                        },
+                      ]}
+                    >
+                      <BodyText variant="sm">
+                        {preset.fileType.includes('pdf') ? '📕' : '🖼️'}
+                      </BodyText>
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <BodyText
+                          variant="xs"
+                          weight={isSelected ? 'bold' : 'regular'}
+                          color={isSelected ? theme.colors.forest[950] : theme.colors.ink.primary}
+                        >
+                          {preset.label}
+                        </BodyText>
+                        <BodyText variant="xs" color={theme.colors.ink.muted}>
+                          {preset.fileName}
+                        </BodyText>
+                      </View>
+                      {isSelected && (
+                        <BodyText variant="xs" weight="bold" color={theme.colors.forest[800]}>
+                          ✓ Selected
+                        </BodyText>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
           {/* Publish Button */}
@@ -559,6 +835,48 @@ const styles = StyleSheet.create({
   },
   presetsContainer: {
     gap: 8,
+  },
+  dropzone: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropzoneContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  uploadIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  attachedFileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1.5,
+  },
+  attachedIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smallActionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
   },
   presetItem: {
     flexDirection: 'row',
