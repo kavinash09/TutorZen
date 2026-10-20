@@ -91,6 +91,18 @@ if /i "%ACTION%"=="up" (
     echo    TutorZen - Launching All Services (Docker)
     echo ====================================================
     echo.
+    rem Clean up any stale conflicting containers
+    for %%C in (tutorzen-postgres tutorzen-backend tutorzen-frontend) do (
+        docker inspect %%C >nul 2>&1
+        if !errorlevel! equ 0 (
+            for /f "tokens=*" %%P in ('docker inspect -f "{{index .Config.Labels ""com.docker.compose.project""}}" %%C 2^>nul') do set C_PROJ=%%P
+            if not "!C_PROJ!"=="tutorzen" (
+                echo Removing conflicting container %%C ^(project: !C_PROJ!^)...
+                docker rm -f %%C >nul 2>&1
+            )
+        )
+    )
+
     echo -^> Building and starting containers in background...
     docker compose -f "%COMPOSE_FILE%" up --build -d
     if %errorlevel% neq 0 (
@@ -118,9 +130,9 @@ if /i "%ACTION%"=="up" (
     echo   Database (PostgreSQL):   localhost:5432 (tutorzen_dev)
     echo.
     echo Pre-seeded Demo Accounts:
-    echo   - Teacher: teacher@demo.com  /  Teacher@123
-    echo   - Student: student@demo.com  /  Student@123
-    echo   - Admin:   admin@demo.com    /  Admin@123
+    echo   - Teacher: teacher@demo.com  /  password123
+    echo   - Student: student@demo.com  /  password123
+    echo   - Admin:   admin@demo.com    /  password123
     echo.
     echo Management Commands:
     echo   - View container status:  .\scripts\run-all.bat --status

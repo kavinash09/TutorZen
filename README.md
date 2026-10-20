@@ -43,9 +43,9 @@ For complete instructions and local development details, see **[Service Executio
 3. **Frontend:** `cd apps/mobile && npm run web`
 
 **Pre-seeded Demo Logins:**
-- **Teacher:** `teacher@demo.com` / `Teacher@123`
-- **Student:** `student@demo.com` / `Student@123`
-- **Admin:** `admin@demo.com` / `Admin@123`
+- **Teacher:** `teacher@demo.com` / `password123`
+- **Student:** `student@demo.com` / `password123`
+- **Admin:** `admin@demo.com` / `password123`
 
 ## Start here
 

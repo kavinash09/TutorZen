@@ -108,6 +108,19 @@ case "$ACTION" in
     echo -e "${BOLD}${CYAN}   TutorZen — Launching All Services (Docker)       ${RESET}"
     echo -e "${BOLD}${CYAN}====================================================${RESET}"
     echo ""
+
+    # Clean up any conflicting containers from previous runs or different compose projects
+    for c in tutorzen-postgres tutorzen-backend tutorzen-frontend; do
+      if docker ps -a --format '{{.Names}}' | grep -Eq "^/?${c}\$"; then
+        # Check if container is part of a different compose project or orphaned
+        project=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c" 2>/dev/null || true)
+        if [[ "$project" != "tutorzen" ]]; then
+          echo -e "${YELLOW}ℹ Removing conflicting container '${c}' (project: '${project}')...${RESET}"
+          docker rm -f "$c" &>/dev/null || true
+        fi
+      fi
+    done
+
     echo -e "${CYAN}→ Building and starting containers in background...${RESET}"
     docker compose -f "$COMPOSE_FILE" up --build -d
 
@@ -128,9 +141,9 @@ case "$ACTION" in
     echo -e "  ${BOLD}🐘 Database (PostgreSQL):${RESET}   ${CYAN}localhost:5432 (tutorzen_dev)${RESET}"
     echo ""
     echo -e "${BOLD}Pre-seeded Demo Accounts:${RESET}"
-    echo -e "  • ${BOLD}Teacher:${RESET} teacher@demo.com  /  Teacher@123"
-    echo -e "  • ${BOLD}Student:${RESET} student@demo.com  /  Student@123"
-    echo -e "  • ${BOLD}Admin:${RESET}   admin@demo.com    /  Admin@123"
+    echo -e "  • ${BOLD}Teacher:${RESET} teacher@demo.com  /  password123"
+    echo -e "  • ${BOLD}Student:${RESET} student@demo.com  /  password123"
+    echo -e "  • ${BOLD}Admin:${RESET}   admin@demo.com    /  password123"
     echo ""
     echo -e "${BOLD}Management Commands:${RESET}"
     echo -e "  • View container status:  ${CYAN}./scripts/run-all.sh --status${RESET}"

@@ -196,9 +196,9 @@ TutorZen comes pre-populated with demo credentials (created via Flyway migration
 
 | Role              | Email                | Password        | Permissions & Available Screens                                               |
 | :---------------- | :------------------- | :-------------- | :---------------------------------------------------------------------------- |
-| **Teacher** | `teacher@demo.com` | `Teacher@123` | Class schedule, mark attendance, bulk mark, upload learning notes & materials |
-| **Student** | `student@demo.com` | `Student@123` | Student home, mark attendance by PIN/QR, view attendance summary              |
-| **Admin**   | `admin@demo.com`   | `Admin@123`   | Full coaching administration access                                           |
+| **Teacher** | `teacher@demo.com` | `password123` | Class schedule, mark attendance, bulk mark, upload learning notes & materials |
+| **Student** | `student@demo.com` | `password123` | Student home, mark attendance by PIN/QR, view attendance summary              |
+| **Admin**   | `admin@demo.com`   | `password123`   | Full coaching administration access                                           |
 
 > [!TIP]
 > On the mobile login screen ([http://localhost:8081](http://localhost:8081)), convenient **"1-Tap Demo Login"** buttons are available to sign in immediately without typing passwords.

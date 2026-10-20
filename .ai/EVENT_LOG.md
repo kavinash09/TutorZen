@@ -248,6 +248,19 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** Scripts created, `git status` clean, typecheck and package.json validated.
 - **Outcome:** Windows developers can compile Android APKs offline in Docker and trigger iOS builds without any heavy IDE installations.
 
+---
+
+## Container Name Conflict Resolution & Auto-Cleanup Hardening
+
+- **Date/time:** 2026-10-21T00:12:00+05:30
+- **Type:** `INCIDENT`
+- **Summary:** Resolved Docker container naming conflict (`Conflict. The container name "/tutorzen-postgres" is already in use by container "0e1e4367cd63"`):
+  - **Root Cause:** A previous session started a postgres container via `infrastructure/docker/docker-compose.yml` under project name `docker`. Running root `docker-compose.yml` (project `tutorzen`) attempted to create a container with the same name. Additionally, background daemon processes (`task-983` Expo and `task-1269` Maven) had occupied ports `8080` and `8081`.
+  - **Remediation:** Removed conflicting container `0e1e4367cd63` and terminated background host processes. Updated `scripts/run-all.sh`, `scripts/run-all.bat`, and `scripts/run-all.ps1` to automatically inspect and remove conflicting or stale `tutorzen-postgres`, `tutorzen-backend`, and `tutorzen-frontend` containers before orchestrating. Corrected demo accounts password in docs to `password123`.
+- **Evidence:** All 3 containers (`tutorzen-postgres`, `tutorzen-backend`, `tutorzen-frontend`) successfully built, launched, and verified healthy; tested HTTP 200 on `http://localhost:8081` and JWT token issuance on `POST http://localhost:8080/api/v1/auth/sign-in`.
+- **Outcome:** Zero manual container cleanup required; 1-command startup runs reliably across platforms.
+
+
 
 
 

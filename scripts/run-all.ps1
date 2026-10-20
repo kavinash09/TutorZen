@@ -89,6 +89,16 @@ switch ($Action) {
         Write-Host "   TutorZen — Launching All Services (Docker)       " -ForegroundColor Cyan
         Write-Host "====================================================" -ForegroundColor Cyan
         Write-Host ""
+
+        # Clean up any conflicting containers from previous runs or different compose projects
+        foreach ($c in @("tutorzen-postgres", "tutorzen-backend", "tutorzen-frontend")) {
+            $existingProject = (docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' $c 2>$null)
+            if ($existingProject -and $existingProject -ne "tutorzen") {
+                Write-Host "ℹ Removing conflicting container '$c' (project: '$existingProject')..." -ForegroundColor Yellow
+                docker rm -f $c 2>$null | Out-Null
+            }
+        }
+
         Write-Host "→ Building and starting containers in background..." -ForegroundColor Cyan
         docker compose -f $ComposeFile up --build -d
 
@@ -119,9 +129,9 @@ switch ($Action) {
         Write-Host "localhost:5432 (tutorzen_dev)" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "Pre-seeded Demo Accounts:" -ForegroundColor White
-        Write-Host "  • Teacher: teacher@demo.com  /  Teacher@123"
-        Write-Host "  • Student: student@demo.com  /  Student@123"
-        Write-Host "  • Admin:   admin@demo.com    /  Admin@123"
+        Write-Host "  • Teacher: teacher@demo.com  /  password123"
+        Write-Host "  • Student: student@demo.com  /  password123"
+        Write-Host "  • Admin:   admin@demo.com    /  password123"
         Write-Host ""
         Write-Host "Management Commands:" -ForegroundColor White
         Write-Host "  • View container status:  .\scripts\run-all.ps1 -status"
