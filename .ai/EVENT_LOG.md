@@ -234,5 +234,20 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** `git status` clean, batch syntax and powershell scripts validated.
 - **Outcome:** Windows users can launch and manage all TutorZen containers with zero friction using Command Prompt, PowerShell, or NPM.
 
+---
+
+## Windows Native Build Scripts (Android APK via Docker & iOS via EAS/Docker)
+
+- **Date/time:** 2026-10-20T23:50:00+05:30
+- **Type:** `TOOLING`
+- **Summary:** Created native Windows build scripts for Android APK and iOS packages:
+  - **Android APK Builder (`scripts/build-apk.bat` & `scripts/build-apk.ps1`):** Compiles standalone APKs (`dist\tutorzen.apk`) entirely inside the `tutorzen-android-builder:amd64` Docker container using volume mounts (`-v "%REPO_ROOT%":/workspace`) without installing Android Studio or the Android SDK on Windows. Supports `--debug`, `--release`, and `--clean`.
+  - **iOS Package Builder (`scripts/build-ios.bat` & `scripts/build-ios.ps1`):** Builds iOS packages for Windows developers via EAS Cloud Build and containerized Docker dispatcher (`--mode docker`), generating Simulator packages (`preview:simulator`, no Apple Dev account required) and physical device `.ipa` packages (`preview`).
+  - **NPM Integration:** Added `build:apk:win`, `build:apk:debug:win`, `build:apk:eas:win`, `build:ios:win`, `build:ios:sim:win`, and `build:ios:docker:win` to root `package.json`.
+  - **Documentation:** Updated `docs/RUNNING.md` with complete Windows mobile build tables and instructions.
+- **Evidence:** Scripts created, `git status` clean, typecheck and package.json validated.
+- **Outcome:** Windows developers can compile Android APKs offline in Docker and trigger iOS builds without any heavy IDE installations.
+
+
 
 

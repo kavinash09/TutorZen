@@ -33,9 +33,9 @@ Last verified: 2026-10-20
   - Quick action tile on `TeacherHomeScreen` and navigation state in `App.tsx`.
 - [VERIFIED-PROTOTYPE] Implement Student Flow on mobile: StudentHomeScreen (Screen 4), StudentAttendanceEntryScreen (Screen 15), StudentAttendanceSummaryScreen (Screen 13), StudentBottomNav, and RoleSwitcherPill (typecheck passing). **Backend endpoint integration for student submission in progress.**
 - [VERIFIED] Establish `infrastructure/docker/docker-compose.yml` for local PostgreSQL database. Both backend and Expo servers verified running.
-- [VERIFIED] Cross-Platform Standalone Build Pipelines:
-  - Android APK containerized compilation via Docker (`scripts/build-apk.sh`) producing verified `dist/tutorzen.apk` (61.14 MB release build) with zero host Android Studio dependency.
-  - iOS package compilation via EAS Cloud Build (`scripts/build-ios.sh`) supporting simulator bundles and physical device `.ipa`.
+- [VERIFIED] Cross-Platform Standalone Build Pipelines (macOS & Windows):
+  - Android APK containerized compilation via Docker (`scripts/build-apk.sh`, `scripts/build-apk.bat`, `scripts/build-apk.ps1`) producing verified `dist/tutorzen.apk` (61.14 MB release build) with zero host Android Studio dependency.
+  - iOS package compilation via EAS Cloud Build and Docker runner (`scripts/build-ios.sh`, `scripts/build-ios.bat`, `scripts/build-ios.ps1`) supporting simulator bundles and physical device `.ipa`.
 - [VERIFIED] Multi-Service Docker Compose Orchestration & Documentation:
   - Multi-stage Dockerfiles for backend (JDK 21 builder, JRE 21 non-root runtime) and frontend (Expo web export with Nginx Alpine).
   - Cross-platform orchestrator scripts: Unix Bash (`scripts/run-all.sh`), Windows Command Prompt (`scripts/run-all.bat`), and Windows PowerShell (`scripts/run-all.ps1`).

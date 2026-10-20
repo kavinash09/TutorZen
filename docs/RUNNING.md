@@ -6,11 +6,11 @@ This document is the definitive guide on how to run, configure, and develop the 
 
 ## 1. Architecture & Port Overview
 
-| Service | Technology | Internal Port | Host Port | URL / Connection |
-| :--- | :--- | :--- | :--- | :--- |
-| **Database** | PostgreSQL 16 (Alpine) | `5432` | `5432` | `jdbc:postgresql://localhost:5432/tutorzen_dev` |
-| **Backend API** | Spring Boot 3.4.3 (Java 21) | `8080` | `8080` | `http://localhost:8080` |
-| **Frontend UI** | React Native + Expo Web (Nginx) | `8081` | `8081` | `http://localhost:8081` |
+| Service               | Technology                      | Internal Port | Host Port | URL / Connection                                  |
+| :-------------------- | :------------------------------ | :------------ | :-------- | :------------------------------------------------ |
+| **Database**    | PostgreSQL 16 (Alpine)          | `5432`      | `5432`  | `jdbc:postgresql://localhost:5432/tutorzen_dev` |
+| **Backend API** | Spring Boot 3.4.3 (Java 21)     | `8080`      | `8080`  | `http://localhost:8080`                         |
+| **Frontend UI** | React Native + Expo Web (Nginx) | `8081`      | `8081`  | `http://localhost:8081`                         |
 
 ```mermaid
 flowchart LR
@@ -29,6 +29,7 @@ flowchart LR
 The easiest way to start all services simultaneously with zero manual setup.
 
 ### Prerequisites
+
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
 
 ### Start All Services
@@ -36,6 +37,7 @@ The easiest way to start all services simultaneously with zero manual setup.
 From the repository root, run:
 
 **macOS / Linux:**
+
 ```bash
 # Using the automated orchestrator script:
 ./scripts/run-all.sh
@@ -48,34 +50,38 @@ docker compose up --build -d
 ```
 
 **Windows (Command Prompt / Double-click):**
+
 ```cmd
 .\scripts\run-all.bat
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 .\scripts\run-all.ps1
 ```
 
 ### What Happens Automatically:
+
 1. Starts the PostgreSQL container and waits until the database healthcheck reports **healthy**.
 2. Compiles and starts the Spring Boot backend, automatically applying Flyway database migrations (`V1` through `V4`).
 3. Builds the React Native Web assets and serves them via high-performance Nginx.
 4. Outputs direct links to the running applications.
 
 ### Open the Application
+
 - **Frontend App:** [http://localhost:8081](http://localhost:8081)
 - **Backend API:** [http://localhost:8080](http://localhost:8080)
 - **Database:** `localhost:5432` (Database: `tutorzen_dev`, User: `tutorzen`, Password: `tutorzen_secret`)
 
 ### Management & Teardown Commands
 
-| Action | macOS / Linux | Windows (cmd/bat) | Windows (PowerShell) |
-| :--- | :--- | :--- | :--- |
-| **Check container status** | `./scripts/run-all.sh --status` | `.\scripts\run-all.bat --status` | `.\scripts\run-all.ps1 -status` |
-| **Stream live logs** | `./scripts/run-all.sh --logs` | `.\scripts\run-all.bat --logs` | `.\scripts\run-all.ps1 -logs` |
-| **Restart services** | `./scripts/run-all.sh --restart` | `.\scripts\run-all.bat --restart` | `.\scripts\run-all.ps1 -restart` |
-| **Stop all services** | `./scripts/run-all.sh --down` | `.\scripts\run-all.bat --down` | `.\scripts\run-all.ps1 -down` |
+| Action                           | macOS / Linux                      | Windows (cmd/bat)                   | Windows (PowerShell)               |
+| :------------------------------- | :--------------------------------- | :---------------------------------- | :--------------------------------- |
+| **Check container status** | `./scripts/run-all.sh --status`  | `.\scripts\run-all.bat --status`  | `.\scripts\run-all.ps1 -status`  |
+| **Stream live logs**       | `./scripts/run-all.sh --logs`    | `.\scripts\run-all.bat --logs`    | `.\scripts\run-all.ps1 -logs`    |
+| **Restart services**       | `./scripts/run-all.sh --restart` | `.\scripts\run-all.bat --restart` | `.\scripts\run-all.ps1 -restart` |
+| **Stop all services**      | `./scripts/run-all.sh --down`    | `.\scripts\run-all.bat --down`    | `.\scripts\run-all.ps1 -down`    |
 
 ---
 
@@ -110,6 +116,7 @@ docker compose up -d postgres
 - **Password:** `tutorzen_secret`
 
 To verify database readiness:
+
 ```bash
 docker exec -it tutorzen-postgres pg_isready -U tutorzen -d tutorzen_dev
 ```
@@ -128,6 +135,7 @@ cd apps/backend
 ```
 
 #### Verification & Health:
+
 Once started, the backend listens on port `8080`. Test with:
 
 ```bash
@@ -138,6 +146,7 @@ curl -s -X POST http://localhost:8080/api/v1/auth/sign-in \
 ```
 
 #### Run Backend Tests:
+
 ```bash
 cd apps/backend && ./mvnw test
 ```
@@ -149,7 +158,9 @@ cd apps/backend && ./mvnw test
 The frontend is built with React Native, TypeScript, and Expo.
 
 #### First-time setup:
+
 Ensure design token dependencies and packages are installed:
+
 ```bash
 # From repository root
 npm install
@@ -157,15 +168,18 @@ npm run build --workspaces --if-present
 ```
 
 #### Start in Web Browser (Hot Reloading):
+
 ```bash
 cd apps/mobile
 
 # Start Expo Web dev server on port 8081
 npm run web
 ```
+
 The browser will automatically open [http://localhost:8081](http://localhost:8081).
 
 #### Run Frontend Tests & Typecheck:
+
 ```bash
 # Typecheck mobile app
 cd apps/mobile && npm run typecheck
@@ -180,11 +194,11 @@ cd apps/mobile && npm test
 
 TutorZen comes pre-populated with demo credentials (created via Flyway migration `V2__identity_schema.sql`):
 
-| Role | Email | Password | Permissions & Available Screens |
-| :--- | :--- | :--- | :--- |
+| Role              | Email                | Password        | Permissions & Available Screens                                               |
+| :---------------- | :------------------- | :-------------- | :---------------------------------------------------------------------------- |
 | **Teacher** | `teacher@demo.com` | `Teacher@123` | Class schedule, mark attendance, bulk mark, upload learning notes & materials |
-| **Student** | `student@demo.com` | `Student@123` | Student home, mark attendance by PIN/QR, view attendance summary |
-| **Admin** | `admin@demo.com` | `Admin@123` | Full coaching administration access |
+| **Student** | `student@demo.com` | `Student@123` | Student home, mark attendance by PIN/QR, view attendance summary              |
+| **Admin**   | `admin@demo.com`   | `Admin@123`   | Full coaching administration access                                           |
 
 > [!TIP]
 > On the mobile login screen ([http://localhost:8081](http://localhost:8081)), convenient **"1-Tap Demo Login"** buttons are available to sign in immediately without typing passwords.
@@ -195,19 +209,20 @@ TutorZen comes pre-populated with demo credentials (created via Flyway migration
 
 ### Backend (`apps/backend/src/main/resources/application.yml`)
 
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/tutorzen_dev` | Database JDBC URL (`postgres` in Docker) |
-| `SPRING_DATASOURCE_USERNAME` | `tutorzen` | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | `tutorzen_secret` | Database password |
-| `JWT_SECRET` | `dev-secret-key-must-be-replaced-...` | 256-bit secret key for HMAC-SHA signing |
-| `JWT_EXPIRY_SECONDS` | `900` (15 minutes) | Access token lifespan |
-| `JWT_REFRESH_EXPIRY_SECONDS` | `604800` (7 days) | Rotating refresh token lifespan |
-| `SERVER_PORT` | `8080` | Spring HTTP server port |
+| Variable                       | Default Value                                     | Description                                |
+| :----------------------------- | :------------------------------------------------ | :----------------------------------------- |
+| `SPRING_DATASOURCE_URL`      | `jdbc:postgresql://localhost:5432/tutorzen_dev` | Database JDBC URL (`postgres` in Docker) |
+| `SPRING_DATASOURCE_USERNAME` | `tutorzen`                                      | Database username                          |
+| `SPRING_DATASOURCE_PASSWORD` | `tutorzen_secret`                               | Database password                          |
+| `JWT_SECRET`                 | `dev-secret-key-must-be-replaced-...`           | 256-bit secret key for HMAC-SHA signing    |
+| `JWT_EXPIRY_SECONDS`         | `900` (15 minutes)                              | Access token lifespan                      |
+| `JWT_REFRESH_EXPIRY_SECONDS` | `604800` (7 days)                               | Rotating refresh token lifespan            |
+| `SERVER_PORT`                | `8080`                                          | Spring HTTP server port                    |
 
 ### Frontend (`apps/mobile/src/services/apiClient.ts`)
 
 The frontend automatically resolves the backend URL based on platform:
+
 - **Web (`localhost`):** `http://localhost:8080`
 - **Android Emulator:** `http://10.0.2.2:8080`
 - **Physical Device:** Set to your host machine's local IP (e.g. `http://192.168.1.X:8080`).
@@ -216,28 +231,38 @@ The frontend automatically resolves the backend URL based on platform:
 
 ## 6. Standalone Mobile App Builds (APK & iOS)
 
-TutorZen includes automated build scripts to generate standalone native application packages without installing heavy local IDEs:
+TutorZen includes automated build scripts to generate standalone native application packages without installing Android Studio, local Xcode, or CocoaPods on your machine:
 
-```bash
-# Build Android APK via Docker (outputs to dist/tutorzen.apk):
-npm run build:apk:docker
+### Android APK (Built locally via Docker Container)
 
-# Build Android APK via EAS Cloud:
-npm run build:apk:eas
+Outputs standalone APK directly to `dist/tutorzen.apk` and `dist/tutorzen-0.1.0-release.apk`.
 
-# Build iOS Simulator Package (no Apple Developer account needed):
-npm run build:ios:sim
+| Platform                       | Command                                                    |
+| :----------------------------- | :--------------------------------------------------------- |
+| **macOS / Linux**        | `./scripts/build-apk.sh` (or `npm run build:apk`)      |
+| **Windows (cmd/bat)**    | `.\scripts\build-apk.bat` (or `npm run build:apk:win`) |
+| **Windows (PowerShell)** | `.\scripts\build-apk.ps1`                                |
+| **Debug APK**            | `.\scripts\build-apk.bat --debug`                        |
+| **Cloud Build (EAS)**    | `.\scripts\build-apk.bat --mode eas`                     |
 
-# Build iOS Device Package (.ipa):
-npm run build:ios:device
-```
+### iOS Package (.ipa & Simulator package)
+
+> **Platform Note:** Apple's proprietary build tools (`xcodebuild` and iOS SDK) strictly require macOS. On Windows or Linux, packages are compiled via Expo Application Services (EAS) cloud builders or containerized EAS runners, outputting directly to `dist/`.
+
+| Target                                             | macOS / Linux                          | Windows (cmd/bat)                         | Windows (PowerShell)                     |
+| :------------------------------------------------- | :------------------------------------- | :---------------------------------------- | :--------------------------------------- |
+| **Simulator package (No Apple Dev account)** | `./scripts/build-ios.sh --simulator` | `.\scripts\build-ios.bat --simulator`   | `.\scripts\build-ios.ps1 -Simulator`   |
+| **Physical Device (.ipa)**                   | `./scripts/build-ios.sh --device`    | `.\scripts\build-ios.bat --device`      | `.\scripts\build-ios.ps1 -Device`      |
+| **Containerized Runner via Docker**          | —                                     | `.\scripts\build-ios.bat --mode docker` | `.\scripts\build-ios.ps1 -Mode docker` |
 
 ---
 
 ## 7. Troubleshooting & FAQ
 
 ### Port 5432 or 8080 is already in use
+
 If an existing PostgreSQL or backend process is running locally:
+
 ```bash
 # Check what is using port 5432
 lsof -i :5432
@@ -246,21 +271,26 @@ lsof -i :8080
 # Check what is using port 8081
 lsof -i :8081
 ```
+
 Kill the conflicting process or stop the local service before running Docker.
 
 ### Reset the Database to Clean Seed State
+
 To completely wipe the database volume and re-run all Flyway migrations:
+
 ```bash
 docker compose down -v
 docker compose up -d postgres
 ```
 
 ### CORS Errors in Browser
+
 The backend Spring Security configuration in [`SecurityConfig.java`](file:///Users/avinash/avinash/tutorzen/apps/backend/src/main/java/com/tutorzen/common/security/SecurityConfig.java) permits `http://localhost:*`, `http://127.0.0.1:*`, and local network IP ranges. Ensure the backend is running on port 8080 and accepting preflight `OPTIONS` requests.
 
 ### Checking Docker Container Health
+
 ```bash
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
-All containers (`tutorzen-postgres`, `tutorzen-backend`, `tutorzen-frontend`) should show status `Up`.
 
+All containers (`tutorzen-postgres`, `tutorzen-backend`, `tutorzen-frontend`) should show status `Up`.

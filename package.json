@@ -23,9 +23,15 @@
     "build:apk:docker": "./scripts/build-apk.sh --mode docker",
     "build:apk:debug": "./scripts/build-apk.sh --debug",
     "build:apk:eas": "./scripts/build-apk.sh --mode eas",
+    "build:apk:win": "scripts\\build-apk.bat",
+    "build:apk:debug:win": "scripts\\build-apk.bat --debug",
+    "build:apk:eas:win": "scripts\\build-apk.bat --mode eas",
     "build:ios": "./scripts/build-ios.sh",
     "build:ios:sim": "./scripts/build-ios.sh --simulator",
-    "build:ios:device": "./scripts/build-ios.sh --device"
+    "build:ios:device": "./scripts/build-ios.sh --device",
+    "build:ios:win": "scripts\\build-ios.bat",
+    "build:ios:sim:win": "scripts\\build-ios.bat --simulator",
+    "build:ios:docker:win": "scripts\\build-ios.bat --mode docker"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
