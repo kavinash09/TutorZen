@@ -24,8 +24,14 @@ For complete instructions and local development details, see **[Service Executio
 
 ### Run All Services at Once (Docker Compose)
 ```bash
+# macOS / Linux:
 ./scripts/run-all.sh
-# or: npm run services:up
+
+# Windows (Command Prompt / Double-click):
+.\scripts\run-all.bat
+
+# Windows (PowerShell):
+.\scripts\run-all.ps1
 ```
 - **Web Frontend:** [http://localhost:8081](http://localhost:8081)
 - **Backend API:** [http://localhost:8080](http://localhost:8080)

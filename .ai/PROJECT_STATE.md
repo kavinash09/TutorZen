@@ -38,7 +38,8 @@ Last verified: 2026-10-20
   - iOS package compilation via EAS Cloud Build (`scripts/build-ios.sh`) supporting simulator bundles and physical device `.ipa`.
 - [VERIFIED] Multi-Service Docker Compose Orchestration & Documentation:
   - Multi-stage Dockerfiles for backend (JDK 21 builder, JRE 21 non-root runtime) and frontend (Expo web export with Nginx Alpine).
-  - Orchestrator script (`scripts/run-all.sh`) and root compose definition (`docker-compose.yml`) running PostgreSQL (5432), Spring Boot API (8080), and Web UI (8081).
+  - Cross-platform orchestrator scripts: Unix Bash (`scripts/run-all.sh`), Windows Command Prompt (`scripts/run-all.bat`), and Windows PowerShell (`scripts/run-all.ps1`).
+  - Root compose definition (`docker-compose.yml`) running PostgreSQL (5432), Spring Boot API (8080), and Web UI (8081).
   - Complete developer & operator guide authored in `docs/RUNNING.md`.
 
 

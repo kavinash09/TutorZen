@@ -35,15 +35,26 @@ The easiest way to start all services simultaneously with zero manual setup.
 
 From the repository root, run:
 
+**macOS / Linux:**
 ```bash
 # Using the automated orchestrator script:
 ./scripts/run-all.sh
 
-# Or using standard npm command:
+# Or using npm command:
 npm run services:up
 
 # Or using Docker Compose directly:
 docker compose up --build -d
+```
+
+**Windows (Command Prompt / Double-click):**
+```cmd
+.\scripts\run-all.bat
+```
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\run-all.ps1
 ```
 
 ### What Happens Automatically:
@@ -59,22 +70,12 @@ docker compose up --build -d
 
 ### Management & Teardown Commands
 
-```bash
-# Check running status of all containers
-npm run services:status
-# or: ./scripts/run-all.sh --status
-
-# Stream real-time logs from all services
-npm run services:logs
-# or: ./scripts/run-all.sh --logs
-
-# Stream logs for a specific service (e.g. backend)
-docker compose logs -f backend
-
-# Stop and remove all containers
-npm run services:down
-# or: ./scripts/run-all.sh --down
-```
+| Action | macOS / Linux | Windows (cmd/bat) | Windows (PowerShell) |
+| :--- | :--- | :--- | :--- |
+| **Check container status** | `./scripts/run-all.sh --status` | `.\scripts\run-all.bat --status` | `.\scripts\run-all.ps1 -status` |
+| **Stream live logs** | `./scripts/run-all.sh --logs` | `.\scripts\run-all.bat --logs` | `.\scripts\run-all.ps1 -logs` |
+| **Restart services** | `./scripts/run-all.sh --restart` | `.\scripts\run-all.bat --restart` | `.\scripts\run-all.ps1 -restart` |
+| **Stop all services** | `./scripts/run-all.sh --down` | `.\scripts\run-all.bat --down` | `.\scripts\run-all.ps1 -down` |
 
 ---
 

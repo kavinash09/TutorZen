@@ -220,4 +220,19 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** `docker compose config` passed with exit code 0; all scripts executable; `README.md` and `docs/RUNNING.md` verified.
 - **Outcome:** Developers can launch the entire stack with a single command (`./scripts/run-all.sh` or `npm run services:up`) or develop individual services with hot reload.
 
+---
+
+## Windows Service Runners (Batch & PowerShell)
+
+- **Date/time:** 2026-10-20T23:39:00+05:30
+- **Type:** `TOOLING`
+- **Summary:** Created native Windows runner scripts supporting Command Prompt and PowerShell:
+  - **Batch File (`scripts/run-all.bat`):** Double-clickable and Command Prompt friendly with delayed variable expansion, background container spinup, docker health polling loop for PostgreSQL, color-emulated output, pre-seeded accounts display, and subcommand routing (`--down`, `--logs`, `--status`, `--restart`, `--help`).
+  - **PowerShell Script (`scripts/run-all.ps1`):** Native PowerShell 5.1/7+ script with styled colored console output (`Write-Host -ForegroundColor`), health polling loop, parameter validation, and identical CLI commands (`-down`, `-logs`, `-status`, `-restart`).
+  - **NPM Integration:** Added `services:up:win`, `services:down:win`, `services:logs:win`, `services:status:win` to root `package.json`.
+  - **Documentation:** Updated `README.md` and `docs/RUNNING.md` with Windows runner commands.
+- **Evidence:** `git status` clean, batch syntax and powershell scripts validated.
+- **Outcome:** Windows users can launch and manage all TutorZen containers with zero friction using Command Prompt, PowerShell, or NPM.
+
+
 
