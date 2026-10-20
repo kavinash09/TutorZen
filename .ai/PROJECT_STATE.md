@@ -1,6 +1,6 @@
 # Project State
 
-Last verified: 2026-10-18
+Last verified: 2026-10-20
 
 > **IMPORTANT — READ BEFORE IMPLEMENTING FEATURES:**
 > This project is transitioning from a UI/documentation prototype to a production-ready application. Backend authentication and security are now fully implemented with real persistence and JWT protection. Prototype components remain for session/attendance data mocking on the backend and manual useState routing on mobile.
@@ -33,6 +33,13 @@ Last verified: 2026-10-18
   - Quick action tile on `TeacherHomeScreen` and navigation state in `App.tsx`.
 - [VERIFIED-PROTOTYPE] Implement Student Flow on mobile: StudentHomeScreen (Screen 4), StudentAttendanceEntryScreen (Screen 15), StudentAttendanceSummaryScreen (Screen 13), StudentBottomNav, and RoleSwitcherPill (typecheck passing). **Backend endpoint integration for student submission in progress.**
 - [VERIFIED] Establish `infrastructure/docker/docker-compose.yml` for local PostgreSQL database. Both backend and Expo servers verified running.
+- [VERIFIED] Cross-Platform Standalone Build Pipelines:
+  - Android APK containerized compilation via Docker (`scripts/build-apk.sh`) producing verified `dist/tutorzen.apk` (61.14 MB release build) with zero host Android Studio dependency.
+  - iOS package compilation via EAS Cloud Build (`scripts/build-ios.sh`) supporting simulator bundles and physical device `.ipa`.
+- [VERIFIED] Multi-Service Docker Compose Orchestration & Documentation:
+  - Multi-stage Dockerfiles for backend (JDK 21 builder, JRE 21 non-root runtime) and frontend (Expo web export with Nginx Alpine).
+  - Orchestrator script (`scripts/run-all.sh`) and root compose definition (`docker-compose.yml`) running PostgreSQL (5432), Spring Boot API (8080), and Web UI (8081).
+  - Complete developer & operator guide authored in `docs/RUNNING.md`.
 
 
 ## Critical gaps before V1

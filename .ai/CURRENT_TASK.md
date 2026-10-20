@@ -41,6 +41,15 @@ Transition TutorZen from a UI/documentation prototype to a V1-ready foundation. 
 - [x] UI field validation: Clicking publish without required title or attached file highlights inputs in red with "Required" indicators, warning captions, and auto-clears on input/upload.
 - [x] Unit tests in `materials.test.ts` (20/20 total mobile unit tests passing).
 
+### Multi-Service Container Orchestration & Execution Documentation (COMPLETED)
+
+- [x] Multi-stage `apps/backend/Dockerfile` (JDK 21 builder, JRE 21 non-root runtime on port 8080).
+- [x] Multi-stage `apps/mobile/Dockerfile` and `nginx.conf` (Expo web bundle builder, Nginx Alpine runtime on port 8081).
+- [x] Multi-service orchestration in `docker-compose.yml` linking PostgreSQL (5432), Backend (8080), and Web UI (8081) with healthchecks.
+- [x] Service runner script `scripts/run-all.sh` with `--down`, `--logs`, `--status`, `--restart` and pre-seeded login credentials.
+- [x] Complete developer guide in `docs/RUNNING.md` detailing architecture, 1-command startup, individual local dev, and troubleshooting.
+- [x] NPM script integration (`services:up`, `services:down`, `services:logs`, `services:status`) and root `README.md` quickstart.
+
 
 ### Student Attendance Real Persistence & Mobile Integration (ACTIVE / NEXT)
 

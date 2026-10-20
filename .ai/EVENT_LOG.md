@@ -204,3 +204,20 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** Script verified (`./scripts/build-ios.sh --help`), mobile typecheck clean (`npx tsc --noEmit`), 20/20 unit tests passing (`npm test`).
 - **Outcome:** Complete cross-platform build pipeline (Android via Docker, iOS via EAS Cloud) with zero heavy IDE installation required on the developer's Mac.
 
+---
+
+## Docker Compose Multi-Service Orchestration & Developer Documentation
+
+- **Date/time:** 2026-10-20T23:35:00+05:30
+- **Type:** `IMPLEMENTATION`
+- **Summary:** Implemented 1-command Docker Compose orchestration and comprehensive developer documentation for all TutorZen services (PostgreSQL 16, Spring Boot API, React Native Web UI):
+  - **Backend Container (`apps/backend/Dockerfile`):** Multi-stage build utilizing `eclipse-temurin:21-jdk-jammy` builder with Maven dependency layer caching and `eclipse-temurin:21-jre-jammy` runtime running as non-root `tutorzen:tutorzen` on port `8080`.
+  - **Frontend Web Container (`apps/mobile/Dockerfile` & `nginx.conf`):** Multi-stage build utilizing `node:20-alpine` builder exporting React Native Web assets via `npx expo export --platform web`, served via `nginx:alpine` on port `8081` with SPA routing and gzip compression.
+  - **Docker Compose (`docker-compose.yml` & `infrastructure/docker/docker-compose.yml`):** Root and infrastructure definitions linking `postgres` (with `pg_isready` healthcheck), `backend` (depends on `postgres` healthy, connects via `jdbc:postgresql://postgres:5432/tutorzen_dev`), and `frontend` (depends on `backend`, maps `8081:8081`).
+  - **CLI Orchestrator Script (`scripts/run-all.sh`):** Executable script with subcommands (`--down`, `--logs`, `--status`, `--restart`), healthcheck polling, and formatted service URLs/login credential output.
+  - **Developer Guide (`docs/RUNNING.md`):** Comprehensive documentation covering system architecture, ports, 1-command startup, local host development instructions, demo credentials, mobile API resolution, and troubleshooting.
+  - **Monorepo Integration (`package.json` & `README.md`):** Added `services:up`, `services:down`, `services:logs`, `services:status` npm scripts and quick start instructions in root README.
+- **Evidence:** `docker compose config` passed with exit code 0; all scripts executable; `README.md` and `docs/RUNNING.md` verified.
+- **Outcome:** Developers can launch the entire stack with a single command (`./scripts/run-all.sh` or `npm run services:up`) or develop individual services with hot reload.
+
+

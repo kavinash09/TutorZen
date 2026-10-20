@@ -18,6 +18,29 @@ Confirm against the actual repository before changing dependencies:
 - Deployment direction: OCI.
 - Architecture: modular monolith, package-by-feature, explicit module contracts.
 
+## Quick Start — Running Services
+
+For complete instructions and local development details, see **[Service Execution & Developer Guide (docs/RUNNING.md)](docs/RUNNING.md)**.
+
+### Run All Services at Once (Docker Compose)
+```bash
+./scripts/run-all.sh
+# or: npm run services:up
+```
+- **Web Frontend:** [http://localhost:8081](http://localhost:8081)
+- **Backend API:** [http://localhost:8080](http://localhost:8080)
+- **PostgreSQL Database:** `localhost:5432` (`tutorzen_dev`)
+
+### Run Services Individually (Local Host Development)
+1. **Database:** `docker compose up -d postgres`
+2. **Backend:** `cd apps/backend && ./mvnw spring-boot:run`
+3. **Frontend:** `cd apps/mobile && npm run web`
+
+**Pre-seeded Demo Logins:**
+- **Teacher:** `teacher@demo.com` / `Teacher@123`
+- **Student:** `student@demo.com` / `Student@123`
+- **Admin:** `admin@demo.com` / `Admin@123`
+
 ## Start here
 
 1. Read `AGENTS.md`.
