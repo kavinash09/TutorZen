@@ -38,18 +38,19 @@ templates/             # ADR, feature spec, event log templates
 
 ## 3. Current Implementation Reality
 
-Always verify actual status against [`.ai/PROJECT_STATE.md`](file:///.ai/PROJECT_STATE.md) before starting any task. Do not treat prototype code as production-ready.
+Always verify actual status against [`.ai/PROJECT_STATE.md`](file:///.ai/PROJECT_STATE.md) and [`docs/audits/V1_REHAUL_AUDIT_REPORT.md`](file:///Users/avinash/avinash/tutorzen/docs/audits/V1_REHAUL_AUDIT_REPORT.md) before starting any task. Do not treat prototype code as production-ready.
 
 | Layer / Area | Current Status | Notes |
 | :--- | :--- | :--- |
-| **Authentication & Security** | **Implemented** | Spring Security `SecurityFilterChain`, stateless JWT (15m expiry), rotating refresh token (7d), BCrypt passwords, and 401 JSON entry point. |
-| **Tenant Isolation** | **Implemented** | `TenantFilter` derives tenant context strictly from verified JWT claims; unauthenticated `X-Tenant-ID` header spoofing is rejected. |
-| **Database Migrations** | **`V1` + `V2` Applied** | `tenants`, `attendance_records`, `users`, `user_credentials`, `refresh_tokens`. Seed demo accounts exist. |
-| **Sessions & Attendance DB** | **Prototype / Mock** | Endpoints exist (`TeacherSessionController`, `StudentAttendanceController`) but return mock data; real persistence pending (`V3` + `V4`). |
-| **Offline Attendance Sync** | **In-Memory** | `AttendanceSyncService` uses `ConcurrentHashMap`; data is lost on restart. |
-| **Mobile Navigation** | **Prototype / Manual** | Uses manual `useState` screen switching in `App.tsx`. React Navigation library is NOT yet installed. |
-| **Mobile Authentication** | **Prototype / Unwired** | Screens exist; not yet connected to backend `POST /api/v1/auth/sign-in` or secure token storage. |
-| **Mobile Screens** | **Prototype** | TeacherHomeScreen, MarkAttendanceScreen, StudentHomeScreen, StudentAttendanceEntryScreen, StudentAttendanceSummaryScreen. |
+| **Authentication & Security** | **Implemented & Verified** | Spring Security `SecurityFilterChain`, stateless JWT (15m expiry), rotating refresh token (7d), BCrypt passwords, 401 JSON entry point, 34 tests passing. |
+| **Tenant Isolation** | **Implemented & Verified** | `TenantFilter` derives tenant context strictly from verified JWT claims; unauthenticated `X-Tenant-ID` header spoofing is rejected. |
+| **Database Migrations** | **`V1` – `V4` Applied** | `tenants`, `attendance_records`, `users`, `user_credentials`, `refresh_tokens`, `subjects`, `batches`, `students`, `batch_enrollments`, `class_sessions`, `learning_materials`. Seed demo accounts exist. |
+| **Teacher Attendance Flow** | **Implemented & Verified** | `TeacherSessionController` reads active sessions and commits marked rosters to `attendance_records` table. 20 mobile unit tests passing. |
+| **Student Attendance Flow** | **Active Implementation** | Endpoints exist in prototype (`StudentAttendanceController`); wiring live database persistence (`POST /submit`) and summary aggregation (`GET /summary`) in progress. |
+| **Learning Materials** | **Implemented & Verified** | `V4__materials_schema.sql`, `TeacherMaterialsController`, `UploadNotesScreen.tsx` with dropzone and required field highlight validation. 6 backend tests, 5 mobile tests passing. |
+| **Mobile Authentication** | **Implemented & Verified** | `AuthScreen.tsx`, `AuthContext.tsx`, `apiClient.ts` with transparent 401 refresh queue, 1-tap demo logins for Teacher (`teacher@demo.com`) and Student (`student@demo.com`). |
+| **Mobile Navigation** | **Active Implementation** | Uses manual `useState` screen switching in `App.tsx`. React Navigation (`@react-navigation/native`) installation is active. |
+| **Multi-Service DevOps** | **Implemented & Verified** | Turnkey multi-container `docker-compose.yml`, cross-platform scripts (`run-all.*`, `build-apk.*`, `build-ios.*`), standalone 61.14 MB release APK compiled. |
 
 ---
 
@@ -82,13 +83,16 @@ Always verify actual status against [`.ai/PROJECT_STATE.md`](file:///.ai/PROJECT
 
 ## 6. Domain Constraints to Preserve
 
+- **Institute & Multi-Branch Hierarchy:** Institutes can have multiple physical branches. Branches own batches, class sessions, and local rosters. Teachers and students can be assigned to multiple branches (ADR-0013).
+- **Branch-Scoped God Mode Dashboard:** Institute Admins view branch-wise operational and financial metrics. Financial metrics require independent permission delegation (`DASHBOARD_FEES_VIEW`) and reconcile with source transaction records (ADR-0012).
 - **Attendance Strategy Pattern:** Attendance marking uses a Strategy Pattern for supported marking methods: bulk, QR, and six-digit code (ADR-0002).
-- **Independent Offline Sync:** Offline attendance synchronization is a separate component from attendance marking (ADR-0003).
+- **Verified Student Check-In:** Students mark attendance via time-limited PIN/QR codes. Prevent duplicate submissions (`409 Conflict`). Auditable corrections retain history.
+- **Offline Fees Only (No Online Gateway):** Configure fee obligations, record offline payments (Cash, UPI, Cheque, Bank Transfer), issue receipts, and support partial payments. Payment reversals are auditable compensating transactions, never row deletions (ADR-0014).
+- **Notes & Assignments (Publishing Only):** Teachers create drafts and publish notes/assignments with deadlines and batch targeting. Students view published materials. 1-level nested discussion comments supported. Student submissions, grading, and feedback are OUT OF SCOPE for V1 (ADR-0015).
+- **Dual-Channel Notifications:** In-app/push for routine announcements and class updates. WhatsApp Business Cloud API is strictly reserved for **critical alerts** (student absence, fee payment receipts, overdue reminders, urgent schedule changes) (ADR-0016).
+- **Enrolled-Student Explore:** Authenticated students can explore active batches and teacher profiles strictly within their permitted institute scope. No public marketplace, no anonymous browsing.
 - **Tenant-Configurable Policy:** QR and six-digit-code validity, and supported attendance policies, are tenant-configurable (ADR-0004).
-- **Offline Sync Resilience:** Offline synchronization must consider retries, idempotency, duplicate submissions, stale sessions, conflicts, and audit history.
-- **God View Deferred:** Platform Super Admin / global “God View” UI is deferred (ADR-0005). Preserve foundations for tenant isolation, RBAC, policy enforcement, and auditing without implementing the deferred interface.
-- **V1 Scope Boundary:** V1 gate must be respected (ADR-0007). Do not implement deferred modules (fees, materials, reports, parent flow) before closing the V1 gate.
-- **JWT & Role Invariants:** Short-lived access tokens (15m) + 7-day rotating refresh tokens (ADR-0009); flat enum roles (`TEACHER`, `STUDENT`, `ADMIN`) in `users` table (ADR-0010).
+- **JWT & Permissions Invariants:** Short-lived access tokens (15m) + 7-day rotating refresh tokens (ADR-0009); base archetype on `users.role` supplemented by granular permissions in `user_permissions` (ADR-0013).
 
 ---
 
@@ -112,14 +116,17 @@ Always run these commands to verify changes. Never state that a check passed wit
 # Backend test suite (unit + integration tests)
 cd apps/backend && ./mvnw test
 
+# Mobile unit tests
+cd apps/mobile && npm test
+
 # Mobile typecheck
 cd apps/mobile && npx tsc --noEmit
 
 # Shared design token package unit tests
 cd packages/design-tokens && npx tsx --test
 
-# Local PostgreSQL container management
-cd infrastructure/docker && docker-compose up -d
+# Turnkey multi-container stack status
+./scripts/run-all.sh --status
 
 # Start Expo dev server (web preview)
 cd apps/mobile && npx expo start --web

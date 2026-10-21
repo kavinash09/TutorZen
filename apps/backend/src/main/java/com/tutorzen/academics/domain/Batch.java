@@ -27,6 +27,9 @@ public class Batch {
     @Column(name = "room", nullable = false)
     private String room;
 
+    @Column(name = "branch_id")
+    private String branchId;
+
     @Column(name = "enrolled_count", nullable = false)
     private int enrolledCount;
 
@@ -37,11 +40,16 @@ public class Batch {
     }
 
     public Batch(String id, String tenantId, String subjectId, String name, String room, int enrolledCount, Instant createdAt) {
+        this(id, tenantId, subjectId, name, room, null, enrolledCount, createdAt);
+    }
+
+    public Batch(String id, String tenantId, String subjectId, String name, String room, String branchId, int enrolledCount, Instant createdAt) {
         this.id = id;
         this.tenantId = tenantId;
         this.subjectId = subjectId;
         this.name = name;
         this.room = room;
+        this.branchId = branchId;
         this.enrolledCount = enrolledCount;
         this.createdAt = createdAt;
     }
@@ -84,6 +92,14 @@ public class Batch {
 
     public void setRoom(String room) {
         this.room = room;
+    }
+
+    public String getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     public int getEnrolledCount() {

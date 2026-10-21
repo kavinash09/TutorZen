@@ -1,99 +1,116 @@
-# V1 Scope Definition
+# TutorZen V1 Scope Definition (Rehaul Edition)
 
-> **Authoritative document.** This defines what "V1" means for TutorZen. Do not shrink or expand V1 scope without appending a new ADR to `.ai/DECISIONS.md` and updating this file.
-
-Last updated: 2026-10-18
-
----
-
-## What V1 is
-
-V1 is the **first release to real users**. It must enable at least one user (a teacher at a coaching center) to sign in with real credentials, create a class session, allow a student to mark attendance, and retrieve a verified attendance record — all persisted in the database and protected by tenant isolation.
-
-V1 is **not** the full product. It is the minimum that is secure enough, reliable enough, and complete enough for real users to trust it with real data.
+> **Authoritative document.** Defines the approved V1 scope for the TutorZen coaching management ERP.  
+> **Last updated:** October 22, 2026 (V1 Rehaul Mandate)  
+> **Associated ADRs:** ADR-0001 to ADR-0016 in `.ai/DECISIONS.md`  
 
 ---
 
-## V1 Gate — all items must be TRUE before any V1 deployment
+## 1. What V1 Is
 
-### Security prerequisites (ADR-0008)
+TutorZen V1 is the **production-ready initial version** of the coaching management ERP supporting multi-institute and multi-branch operations. It provides reliable role- and branch-scoped authorization across Platform Admins, Institute Admins, Moderators, Teachers, and Students.
 
-- [ ] JWT-based authentication is implemented and enforced server-side.
-- [ ] A `SecurityFilterChain` bean exists; all endpoints require a valid JWT except `POST /api/v1/auth/sign-in`.
-- [ ] Tenant ID is extracted from the JWT — not from a client-supplied HTTP header.
-- [ ] Passwords are stored with bcrypt. No plaintext passwords in DB, logs, or API responses.
-- [ ] JWT secret is externalized via environment variable, not hardcoded.
-- [ ] Integration tests verify 401 on missing/invalid tokens.
-
-### Data integrity prerequisites
-
-- [ ] A Flyway migration establishes the `users`, `user_credentials`, and `class_sessions` tables.
-- [ ] `attendance_records` is written to by real application code (not just defined in DDL).
-- [ ] All reads and writes are scoped to `tenant_id` from the authenticated session.
-- [ ] No hardcoded business data remains in any REST controller for production code paths.
-
-### Core user journeys (end-to-end, real DB)
-
-**Teacher journey (required):**
-1. Teacher signs in with email + password → receives JWT.
-2. Teacher creates a class session → session record written to DB.
-3. Teacher views the session code/QR → generated from DB session.
-4. Student marks attendance with the code → `attendance_records` row written.
-5. Teacher can view attendance summary → read from DB.
-
-**Student journey (required):**
-1. Student signs in → receives JWT.
-2. Student views active session → fetched from DB.
-3. Student marks attendance → `attendance_records` row written.
-4. Student views their attendance summary → read from DB.
-
-### Mobile prerequisites
-
-- [ ] React Navigation library is installed and replaces manual `useState` routing.
-- [ ] Auth screen (sign-in form) calls the real backend `sign-in` endpoint.
-- [ ] JWT is stored securely (e.g., `expo-secure-store`, not `AsyncStorage`).
-- [ ] All API calls include `Authorization: Bearer <token>`.
-- [ ] Token expiry redirects to the sign-in screen.
-- [ ] Loading, error, and empty states are shown for all async operations.
-
-### Operational prerequisites
-
-- [ ] Local dev environment is documented and reproducible (Docker Compose for PostgreSQL).
-- [ ] Environment variables for JWT secret and DB credentials are documented (not committed).
-- [ ] Application starts cleanly from scratch with `docker-compose up` + `./mvnw spring-boot:run`.
+V1 delivers the core operational loop: institute and branch onboarding, batch schedules with timing and topics, teacher attendance marking, verified student self check-in, offline fee ledgering with receipts, notes and assignment publishing with 1-level nested discussion threads, dual-channel notifications (in-app + critical WhatsApp), and an enrolled-student batch explore board.
 
 ---
 
-## What V1 is NOT required to include
+## 2. In-Scope Modules & Acceptance Boundaries
 
-These are explicitly deferred to post-V1:
+### A. Platform Admin & Institute Onboarding
+- Create an institute with legal details and status (`PENDING_SETUP`, `ACTIVE`, `SUSPENDED`, `DEACTIVATED`).
+- Provision one or multiple branches with distinct physical addresses.
+- Invite and provision initial Institute Admin credentials.
+- Platform Admin account lifecycle and administrative audit history.
 
-| Feature | Reason for deferral |
-|---------|---------------------|
-| Guardian/Parent flow | No parent journey is on the critical path for initial coaching center use |
-| Reports and exports | Attendance records exist in DB; exports are additive |
-| Notifications (push/email) | Manual attendance flow works without push notifications |
-| Learning materials module | Not required for attendance-first use case |
-| Assignments module | Not required for V1 |
-| Assessments module | Not required for V1 |
-| Fees module | Coaches can manage fees out-of-band for first users |
-| Offline sync queue (SQLite/WatermelonDB) | Manual online marking is acceptable for V1 |
-| Platform Super Admin / God View | Deferred indefinitely (ADR-0005) |
-| OCI production deployment | Required before real users; can follow immediately after V1 gate |
-| Coaching Admin onboarding UI | First tenants can be seeded manually via SQL |
+### B. Institute Admin & Branch Governance
+- Institute profile settings and branch administration (`ACTIVE`, `INACTIVE`, availability toggle).
+- Create and manage Moderators with explicit, branch-scoped delegated permissions (e.g., `BRANCH_MANAGE`, `FEES_MANAGE`, `STAFF_LIFECYCLE_MANAGE`).
+- Staff and teacher lifecycle management.
+- Branch-wise **God Mode dashboard** with independent financial report delegation (`DASHBOARD_VIEW`, `DASHBOARD_FEES_VIEW`) (ADR-0012).
+
+### C. Moderator Experience
+- View assigned branches only; zero implicit institute-wide access.
+- Execute actions strictly within explicitly granted permissions.
+
+### D. Staff & Teacher Management
+- Invite, edit, list, activate, suspend, and deactivate staff and teachers.
+- Assign teachers to multiple branches and batches.
+- Immutable history: prior teaching and attendance records remain preserved upon reassignment or deactivation.
+
+### E. Batch & Academic Scheduling
+- Batch CRUDL with lifecycle: `DRAFT`, `UPCOMING`, `ACTIVE`, `COMPLETED`, `CANCELLED`.
+- Class timing configuration (`start_time`, `end_time`, `days_of_week`, `room`).
+- Session topic and syllabus tracking (e.g. "Math: Calculus - Integration by Parts").
+- Schedule class sessions with attendance verification windows.
+
+### F. Attendance (Teacher & Student)
+- Teachers mark Present, Absent, or Late on live rosters (Bulk, QR, 6-digit PIN).
+- Enrolled students self-check-in via verified, time-limited PIN/QR code.
+- Idempotency guard: prevent duplicate check-ins (`409 Conflict`).
+- Live student summary metrics (total sessions, attended, percentage, history).
+
+### G. Offline Fees Only (No Gateway) (ADR-0014)
+- Configure fee obligations, installment schedules, and due dates.
+- Record offline payments: Cash, UPI direct transfer, Cheque, Bank Transfer.
+- Support partial payments and display outstanding balances.
+- Downloadable/printable payment receipts.
+- **Strictly auditable reversals:** Errors are corrected via compensating reversal transactions (`RECORDED`, `REVERSED`), never by deleting database rows.
+- **Explicit boundary: NO online payment gateway (Stripe/Razorpay) in V1.**
+
+### H. Notes & Assignment Publishing Only (ADR-0015)
+- Teachers create drafts, attach PDFs/notes, assign subjects/batches, set deadlines, and publish.
+- Students view published notes and assignments filtered to their active batch enrollments.
+- **1-Level Nested Discussion Comments:** Interactive discussion thread on notes/assignments supporting top-level comments and direct replies (nesting beyond 1 level rejected).
+- **Explicit boundary: Assignment submissions, grading, and feedback are OUT OF SCOPE for V1.**
+
+### I. Announcements & Notifications (ADR-0016)
+- Announcement CRUDL targeting branches, batches, or audiences.
+- Student notice board.
+- Shared notification subsystem:
+  - **In-App / Push (Expo/FCM):** Default channel for routine notices, new notes, and class reminders.
+  - **WhatsApp Business Cloud API:** Strictly reserved for **critical notifications only** (student absence alerts, fee payment receipts, overdue reminders, urgent schedule changes).
+- Publication success is decoupled from notification delivery outcomes.
+
+### J. Student Identity & Enrollment Lifecycle
+- Student account/profile separate from batch enrollment.
+- Multi-branch membership and batch transfers with historical data preservation.
+- Enrollment states: `PENDING`, `ACTIVE`, `COMPLETED`, `WITHDRAWN`.
+
+### K. Student Experience & Enrolled Explore
+- Personal attendance summary, fee balance, notes/notice boards, in-app notifications.
+- **Enrolled-Student Explore:** Authenticated students can explore other active batches and teacher profiles within their permitted institute scope.
+- **Explicit boundary: No public marketplace, no anonymous discovery, no exposure of private teacher/fee metrics.**
 
 ---
 
-## V1 module priority order
+## 3. Explicitly Out of Scope for V1
 
-Implement in this order (each unblocks the next):
+The following capabilities are formally deferred to post-V1:
 
-1. **Identity** — User + credential table, sign-in endpoint, JWT issue/verify
-2. **Tenancy** (harden existing) — Derive tenant from JWT; remove header trust
-3. **Academics** — Subjects, batches, class sessions (minimal: teacher assigns sessions)
-4. **Attendance** (harden existing) — Write real records; link to sessions and users
-5. **Mobile auth** — Install React Navigation, add sign-in screen, integrate JWT
-6. **Mobile attendance** — Replace mock data with real API calls
+| Deferred Capability | Reason for Deferral |
+| :--- | :--- |
+| **Online Payment Gateways** | V1 uses offline fee logging (Cash/UPI/Cheque). Gateways require merchant KYC and fee settlement overhead. |
+| **Student Assignment Submissions & Grading** | V1 is publishing-only for assignments and study notes. Submissions, student upload workflows, and grading matrices belong in V2. |
+| **Public Marketplace / Anonymous Discovery** | Explore is strictly for already-enrolled, authenticated students. No public marketing pages. |
+| **Dedicated Guardian / Parent App Portal** | Parents receive critical WhatsApp alerts; dedicated multi-child parent app portal is deferred. |
+| **Assessment & Percentile Ranking Engine** | Exam scheduling and class percentile calculations are deferred. |
+| **Global Platform Super Admin UI** | Platform Admin operations are API-driven; institute-level God Mode is in-scope. |
 
-See `docs/roadmap/IMPLEMENTATION_ROADMAP.md` for the detailed implementation sequence.
+---
 
+## 4. V1 Release Gate Verification Checklist
+
+All items must be verified TRUE before cutting the `v1.0.0` release:
+
+- [ ] Multi-branch schema migration applied cleanly with zero regressions (`V5`).
+- [ ] Institute Admin can manage branches and delegate moderator permissions.
+- [ ] Teacher live session marking and student verified PIN check-in persist to DB.
+- [ ] Offline fee payments generate receipts and reflect partial/paid balances.
+- [ ] Payment reversals create compensating transactions without row deletion.
+- [ ] Notes and assignments publish to batches with 1-level nested comment threads.
+- [ ] Critical events dispatch WhatsApp template messages (or mock outbox in dev).
+- [ ] React Navigation multi-stacks (`AuthStack`, `TeacherTabs`, `StudentTabs`, `AdminTabs`) replace manual routing.
+- [ ] Cross-tenant access returns 401/403; cross-branch access requires assignment.
+- [ ] Backend test suite passes 100% (`./mvnw test`).
+- [ ] Mobile unit tests pass 100% (`npm test`); TypeScript compiles with 0 errors (`npx tsc --noEmit`).
+- [ ] Multi-container Docker Compose boots cleanly (`docker compose up`).

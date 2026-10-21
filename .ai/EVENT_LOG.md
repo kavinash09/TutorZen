@@ -260,6 +260,26 @@ Chronological factual record of material project events. Append new entries; do 
 - **Evidence:** All 3 containers (`tutorzen-postgres`, `tutorzen-backend`, `tutorzen-frontend`) successfully built, launched, and verified healthy; tested HTTP 200 on `http://localhost:8081` and JWT token issuance on `POST http://localhost:8080/api/v1/auth/sign-in`.
 - **Outcome:** Zero manual container cleanup required; 1-command startup runs reliably across platforms.
 
+---
+
+## V1 Rehaul Execution: Student Check-In Persistence & Multi-Branch Migration
+
+- **Date/time:** 2026-10-22T01:36:00+05:30
+- **Type:** `IMPLEMENTATION`
+- **Summary:** Executed Phase 0 Baseline Audit, Student Attendance Persistence slice (`TZ-E09-S02`), and Multi-Branch & Permissions Schema Migration slice (`TZ-E04-S01`):
+  - **Phase 0 Audit & Scope Alignment:** Authored `docs/audits/V1_REHAUL_AUDIT_REPORT.md` (10 required audit sections), updated `docs/product/V1_SCOPE.md` with explicit V1 boundaries, established 14-Epic Backlog (`docs/development/backlog.md`), and recorded ADR-0012 to ADR-0016 in `.ai/DECISIONS.md`.
+  - **Student Check-In Persistence (`TZ-E09-S02`):** Updated `StudentAttendanceController.submitAttendance` to validate session code and expiry against `ClassSessionRepository`, enforce duplicate prevention with `409 Conflict`, and persist records to `AttendanceRecordRepository`. Updated `getStudentAttendanceSummary` to calculate dynamic metrics from database rows. Wired `apiClient.ts` with `submitStudentAttendance` and `getStudentAttendanceSummary`, integrating `StudentAttendanceEntryScreen.tsx` and `StudentAttendanceSummaryScreen.tsx`.
+  - **Multi-Branch & Permissions Migration (`TZ-E04-S01`):** Created forward Flyway migration `V5__branches_and_permissions.sql` (`branches`, `permissions`, `user_permissions`, `branch_assignments`, and `batches.branch_id`). Implemented JPA entities and repositories in `com.tutorzen.branch` (`Branch`, `BranchAssignment`) and `com.tutorzen.authorization` (`Permission`, `UserPermission`).
+  - **Testing & Verification:** Added `StudentAttendancePersistenceTests.java` (5 tests) and `BranchAndPermissionTests.java` (4 tests). Full backend test suite grew from 46 to 55 passing tests.
+- **Evidence:** 
+  - `./mvnw test` in `apps/backend`: 55/55 tests passing (0 failures, 0 errors).
+  - `npm test` in `apps/mobile`: 20/20 unit tests passing.
+  - `npx tsc --noEmit` in `apps/mobile`: 0 errors.
+  - `npx tsx --test` in `packages/design-tokens`: 12/12 assertions passing.
+- **Outcome:** Verified student check-in and multi-branch database schema are fully operational and verified by automated tests.
+- **Follow-up:** Implement Milestone 4 (`TZ-E07-S02`: Batch Timings & Topics) and Milestone 5 (`TZ-E01-S02`: React Navigation Multi-Stack).
+
+
 
 
 

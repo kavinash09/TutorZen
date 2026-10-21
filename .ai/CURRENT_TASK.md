@@ -1,81 +1,54 @@
-# Current Task: Foundation Hardening — Authentication & Real Persistence
+# Current Task: TutorZen V1 Rehaul — Phase 0 Audit & Vertical Slice Execution
 
 ## Goal
 
-Transition TutorZen from a UI/documentation prototype to a V1-ready foundation. Implement authentication (JWT-based identity with refresh token rotation), replace hardcoded mock data with real database persistence, and connect the mobile client with proper navigation and authentication.
+Execute the controlled rehaul of TutorZen into the approved V1 specification: multi-institute, multi-branch, permission-based RBAC, batch schedules with timing/topics, teacher live attendance, verified student check-in, offline fee ledgering, publishing-only notes/assignments with 1-level nested comments, dual-channel notifications (app + critical WhatsApp), and enrolled-student explore.
+
+---
 
 ## Acceptance Criteria
 
-### Backend Authentication & Security (COMPLETED)
+### Phase 0: Baseline Audit & Gap Assessment (COMPLETED)
 
-- [x] `identity` module: User entity, credential storage (BCrypt), RefreshToken entity with SHA-256 token hashing, `AuthService`, and endpoints (`POST /api/v1/auth/sign-in`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/sign-out`).
-- [x] `SecurityFilterChain` configured: stateless JWT filter chain, role-based authorization (`TEACHER`, `STUDENT`, `ADMIN`), 401 unauthenticated JSON responses, and BCryptPasswordEncoder.
-- [x] `TenantFilter` updated to derive tenant strictly from verified JWT claims; unauthenticated `X-Tenant-ID` header spoofing ignored for authenticated requests.
-- [x] `V2__identity_schema.sql` Flyway migration: `users`, `user_credentials`, and `refresh_tokens` tables with foreign keys and index scoping, plus seed demo users.
-- [x] 34 backend unit and integration tests passing (`./mvnw test`) covering sign-in, token rotation, sign-out, 401 unauthenticated, 403 unauthorized, and tenant spoofing rejection.
+- [x] Full codebase audit executed across Spring Boot backend, Expo mobile app, Flyway migrations, and tests.
+- [x] Baseline commands verified passing: 46/46 backend tests, 20/20 mobile unit tests, 0 TypeScript compile errors, 12/12 design token assertions.
+- [x] Authored comprehensive audit artifact: `docs/audits/V1_REHAUL_AUDIT_REPORT.md`.
+- [x] Updated authoritative scope definition in `docs/product/V1_SCOPE.md` with explicit V1 boundaries (Offline fees only, notes/assignments publishing only, critical WhatsApp only, no public marketplace).
+- [x] Established 14-Epic engineering backlog (`TZ-E01` to `TZ-E14`) in `docs/development/backlog.md`.
+- [x] Appended ADR-0012 to ADR-0016 in `.ai/DECISIONS.md`.
+- [x] Synchronized `AGENTS.md` and `.ai/` project memory.
 
-### Real Academics & Teacher Session Persistence (COMPLETED)
+---
 
-- [x] `V3__academics_schema.sql` migration: `subjects`, `batches`, `students`, `batch_enrollments`, and `class_sessions` with seed data.
-- [x] JPA entities (`ClassSession`, `Student`, `Batch`, `AttendanceRecordRepository`) in `com.tutorzen.academics` and `com.tutorzen.attendance.domain`.
-- [x] `TeacherSessionController` connected to repositories: reads real sessions from DB, generates real session codes, and persists marked attendance records to `attendance_records` table.
-- [x] Integration tests: `TeacherSessionPersistenceTests` (37/37 backend tests passing).
+### Active Slices: Student Check-In Persistence & Multi-Branch Migration (COMPLETED)
 
-### Mobile Authentication & Teacher Flow Integration (COMPLETED)
+#### Milestone 1 & 3: Student Attendance Live Verification & Persistence (`TZ-E09-S02`)
+- [x] `TZ-E09-S02-T01` (DEV-A): Update `StudentAttendanceController.submitAttendance` to validate active session status, expiry, matching PIN/QR code against `ClassSessionRepository`, check student batch enrollment, prevent duplicate submissions (`409 Conflict`), and persist record to `AttendanceRecordRepository`.
+- [x] `TZ-E09-S02-T02` (DEV-A): Update `StudentAttendanceController.getStudentAttendanceSummary` to calculate dynamic metrics from database records (attended/total sessions, percentage, last 10 logs).
+- [x] `TZ-E09-S02-T03` (DEV-B): Wire `StudentAttendanceEntryScreen.tsx` and `StudentAttendanceSummaryScreen.tsx` to live backend APIs via `apiClient.ts`.
+- [x] Integration tests in `StudentAttendancePersistenceTests.java` verifying 200 on valid check-in, 400 on invalid PIN, 409 on duplicate check-in, 410 on expired session, and 403 on cross-tenant access.
 
-- [x] `apiClient.ts` handles JWT access token + refresh token, automatic 401 refresh, and authenticated API calls.
-- [x] `AuthContext.tsx` and `AuthScreen.tsx` implemented with 1-tap demo credentials (`teacher@demo.com`, `student@demo.com`).
-- [x] `TeacherHomeScreen.tsx` fetching today's sessions from backend with visual online indicator.
-- [x] `MarkAttendanceScreen.tsx` loading batch roster from backend, syncing session codes with backend DB, and submitting bulk attendance.
-- [x] `App.tsx` wired with `AuthProvider` and sign-out header action.
+#### Milestone 2: Multi-Branch & Permissions Schema Migration (`TZ-E04-S01`)
+- [x] `TZ-E04-S01-T01` (DEV-A): Create `V5__branches_and_permissions.sql` forward migration:
+  - `branches` table (`id, tenant_id, name, address, phone, status, availability`).
+  - Seed default branch for `tenant-default` (`branch-default-main`).
+  - Add `branch_id` column to `batches` referencing `branches(id)`.
+  - `permissions` and `user_permissions` tables for fine-grained moderator delegation.
+  - `branch_assignments` table for multi-branch staff/teacher assignments.
+- [x] JPA entities (`Branch`, `BranchAssignment`, `Permission`, `UserPermission`) and repositories implemented with 4/4 passing tests in `BranchAndPermissionTests.java`.
 
-### Learning Materials & Upload Notes (COMPLETED)
+---
 
-- [x] ADR-0011: Subject-scoped learning materials metadata repository.
-- [x] `V4__materials_schema.sql` migration: `learning_materials` table with indexes and seed data.
-- [x] JPA entities (`Subject`, `LearningMaterial`) and repositories in `com.tutorzen.academics` and `com.tutorzen.materials`.
-- [x] `TeacherMaterialsController`: `GET /api/v1/teacher/materials`, `POST`, `DELETE`, and `GET /subjects`.
-- [x] 6 integration tests in `TeacherMaterialsPersistenceTests.java` (46/46 total backend tests passing).
-- [x] Mobile `apiClient.ts` methods for materials (`getMaterials`, `uploadMaterial`, `deleteMaterial`, `getSubjects`).
-- [x] `UploadNotesScreen.tsx` with Claymorphic aesthetic, subject pills, interactive file upload dropzone, native OS file picker, and published notes list with delete action.
-- [x] UI field validation: Clicking publish without required title or attached file highlights inputs in red with "Required" indicators, warning captions, and auto-clears on input/upload.
-- [x] Unit tests in `materials.test.ts` (20/20 total mobile unit tests passing).
+### Immediate Next Slices (NEXT UP)
 
-### Multi-Service Container Orchestration & Execution Documentation (COMPLETED)
+#### Milestone 4: Batch Timings & Topics (`TZ-E07-S02`)
+- [ ] `TZ-E07-S02-T01` (DEV-A): Create `V6__batch_timings_and_topics.sql`:
+  - Add recurring weekly schedule columns to `batches` (`days_of_week` VARCHAR(50), `start_time` TIME, `end_time` TIME).
+  - Add session syllabus coverage columns to `class_sessions` (`topic_title` VARCHAR(255), `topic_summary` TEXT).
+- [ ] `TZ-E07-S02-T02` (DEV-A): Update `Batch` and `ClassSession` domain models, repository queries, and service endpoints.
+- [ ] `TZ-E07-S02-T03` (DEV-B): Display batch weekly timings and session topic coverage in mobile class session cards.
 
-- [x] Multi-stage `apps/backend/Dockerfile` (JDK 21 builder, JRE 21 non-root runtime on port 8080).
-- [x] Multi-stage `apps/mobile/Dockerfile` and `nginx.conf` (Expo web bundle builder, Nginx Alpine runtime on port 8081).
-- [x] Multi-service orchestration in `docker-compose.yml` linking PostgreSQL (5432), Backend (8080), and Web UI (8081) with healthchecks.
-- [x] Service runner script `scripts/run-all.sh` with `--down`, `--logs`, `--status`, `--restart` and pre-seeded login credentials.
-- [x] Complete developer guide in `docs/RUNNING.md` detailing architecture, 1-command startup, individual local dev, and troubleshooting.
-- [x] NPM script integration (`services:up`, `services:down`, `services:logs`, `services:status`) and root `README.md` quickstart.
-
-
-### Student Attendance Real Persistence & Mobile Integration (ACTIVE / NEXT)
-
-- [ ] Update `StudentAttendanceController` to validate session PIN/QR against `ClassSessionRepository` and persist attendance to `AttendanceRecordRepository`.
-- [ ] Implement dynamic attendance summary calculation in `StudentAttendanceController.getStudentAttendanceSummary` from database records.
-- [ ] Wire `StudentAttendanceEntryScreen.tsx` to `apiClient.submitAttendance()` via authenticated student JWT.
-- [ ] Wire `StudentAttendanceSummaryScreen.tsx` to `apiClient` to fetch live student attendance stats.
-- [ ] Add integration tests in `apps/backend` verifying student submission persistence and summary metrics.
-
-### React Navigation (UPCOMING)
-
-- [ ] Install `@react-navigation/native`, `@react-navigation/bottom-tabs`, `@react-navigation/native-stack`.
-- [ ] Replace manual `useState` routing in `App.tsx` with proper navigation stacks for Auth, Teacher, and Student.
-
-### Security checklist (Verified)
-
-- [x] No tenant ID is trusted from an unauthenticated source for authenticated requests.
-- [x] Passwords are never logged or returned in any response (BCrypt hashed).
-- [x] JWT secret externalized via environment variable with fallback for dev.
-- [x] All protected endpoints return 401 when JWT is missing or invalid.
-- [x] Token rotation on refresh: used refresh tokens are immediately revoked.
-
-## Out of scope for this task
-
-- Guardian/Parent flow (deferred to post-V1)
-- Offline sync queue persistence with WatermelonDB (deferred to post-V1)
-- Fees, materials, assignments, assessments
-- Platform Super Admin
+#### Milestone 5: React Navigation Multi-Stack Installation (`TZ-E01-S02`)
+- [ ] Install `@react-navigation/native`, `@react-navigation/stack`, `@react-navigation/bottom-tabs`, `react-native-screens`, `react-native-safe-area-context` in `apps/mobile`.
+- [ ] Configure role-based navigators (`AuthNavigator`, `TeacherNavigator`, `StudentNavigator`, `AdminNavigator`) replacing manual `useState` in `App.tsx`.
 

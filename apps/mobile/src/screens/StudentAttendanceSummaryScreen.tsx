@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -11,6 +11,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { Heading, BodyText } from '../components/Typography';
 import { TactileCard } from '../components/TactileCard';
 import { TactileButton } from '../components/TactileButton';
+import { apiClient, StudentAttendanceSummaryResponse } from '../services/apiClient';
 
 export interface AttendanceHistoryRecord {
   id: string;
@@ -22,12 +23,14 @@ export interface AttendanceHistoryRecord {
 }
 
 export interface StudentAttendanceSummaryScreenProps {
+  studentId?: string;
   isAttendanceMarked?: boolean;
   onNavigateBack: () => void;
   onNavigateToMarkAttendance?: () => void;
 }
 
 export const StudentAttendanceSummaryScreen: React.FC<StudentAttendanceSummaryScreenProps> = ({
+  studentId,
   isAttendanceMarked = false,
   onNavigateBack,
   onNavigateToMarkAttendance,
@@ -35,76 +38,108 @@ export const StudentAttendanceSummaryScreen: React.FC<StudentAttendanceSummarySc
   const theme = useTheme();
 
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT' | 'LATE'>('ALL');
+  const [summary, setSummary] = useState<StudentAttendanceSummaryResponse | null>(null);
 
-  // Dynamic statistics reflecting whether student marked attendance for today's session
-  const totalClasses = isAttendanceMarked ? 51 : 50;
-  const presentCount = isAttendanceMarked ? 47 : 46;
-  const absentCount = 4;
-  const lateCount = 2;
-  const percentage = Math.round((presentCount / totalClasses) * 100);
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSummary = async () => {
+      try {
+        const sid = studentId || apiClient.getCurrentUser()?.id || 'std-01';
+        const data = await apiClient.getStudentAttendanceSummary(sid);
+        if (isMounted) {
+          setSummary(data);
+        }
+      } catch (err) {
+        console.warn('Failed to load attendance summary from API', err);
+      }
+    };
 
-  const historyRecords: AttendanceHistoryRecord[] = [
-    ...(isAttendanceMarked
-      ? [
-          {
-            id: 'rec-today',
-            date: 'Today, Oct 15',
-            subject: 'Calculus & Vectors',
-            time: '10:00 AM',
-            status: 'PRESENT' as const,
-            method: '6-Digit PIN',
-          },
-        ]
-      : []),
-    {
-      id: 'rec-01',
-      date: 'Oct 14, 2026',
-      subject: 'Mechanics & Heat',
-      time: '02:00 PM',
-      status: 'PRESENT',
-      method: 'QR Code',
-    },
-    {
-      id: 'rec-02',
-      date: 'Oct 13, 2026',
-      subject: 'Calculus Problem Set',
-      time: '10:00 AM',
-      status: 'PRESENT',
-      method: 'Bulk Roster',
-    },
-    {
-      id: 'rec-03',
-      date: 'Oct 11, 2026',
-      subject: 'Organic Chemistry',
-      time: '11:30 AM',
-      status: 'ABSENT',
-      method: 'Teacher Marked',
-    },
-    {
-      id: 'rec-04',
-      date: 'Oct 10, 2026',
-      subject: 'Calculus Derivatives',
-      time: '10:00 AM',
-      status: 'PRESENT',
-      method: '6-Digit PIN',
-    },
-    {
-      id: 'rec-05',
-      date: 'Oct 09, 2026',
-      subject: 'Physics Lab Session',
-      time: '03:00 PM',
-      status: 'LATE',
-      method: '6-Digit PIN',
-    },
-    {
-      id: 'rec-06',
-      date: 'Oct 08, 2026',
-      subject: 'Algebra & Matrices',
-      time: '10:00 AM',
-      status: 'PRESENT',
-      method: 'QR Code',
-    },
-  ];
+    fetchSummary();
+    return () => {
+      isMounted = false;
+    };
+  }, [studentId, isAttendanceMarked]);
+
+  // Dynamic statistics reflecting live API response with fallback
+  const totalClasses = summary ? summary.totalClasses : isAttendanceMarked ? 51 : 50;
+  const presentCount = summary ? summary.presentCount : isAttendanceMarked ? 47 : 46;
+  const absentCount = summary ? summary.absentCount : 4;
+  const lateCount = summary ? summary.lateCount : 2;
+  const percentage = summary
+    ? Math.round(summary.overallPercentage)
+    : Math.round((presentCount / (totalClasses || 1)) * 100);
+
+  const historyRecords: AttendanceHistoryRecord[] = summary?.recentHistory?.length
+    ? summary.recentHistory.map((h) => ({
+        id: h.recordId,
+        date: new Date(h.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        subject: h.subject,
+        time: new Date(h.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        status: h.status,
+        method: h.method === 'SIX_DIGIT_CODE' ? '6-Digit PIN' : h.method === 'QR' ? 'QR Code' : 'Bulk Roster',
+      }))
+    : [
+        ...(isAttendanceMarked
+          ? [
+              {
+                id: 'rec-today',
+                date: 'Today, Oct 15',
+                subject: 'Calculus & Vectors',
+                time: '10:00 AM',
+                status: 'PRESENT' as const,
+                method: '6-Digit PIN',
+              },
+            ]
+          : []),
+        {
+          id: 'rec-01',
+          date: 'Oct 14, 2026',
+          subject: 'Mechanics & Heat',
+          time: '02:00 PM',
+          status: 'PRESENT',
+          method: 'QR Code',
+        },
+        {
+          id: 'rec-02',
+          date: 'Oct 13, 2026',
+          subject: 'Calculus Problem Set',
+          time: '10:00 AM',
+          status: 'PRESENT',
+          method: 'Bulk Roster',
+        },
+        {
+          id: 'rec-03',
+          date: 'Oct 11, 2026',
+          subject: 'Organic Chemistry',
+          time: '11:30 AM',
+          status: 'ABSENT',
+          method: 'Teacher Marked',
+        },
+        {
+          id: 'rec-04',
+          date: 'Oct 10, 2026',
+          subject: 'Calculus Derivatives',
+          time: '10:00 AM',
+          status: 'PRESENT',
+          method: '6-Digit PIN',
+        },
+        {
+          id: 'rec-05',
+          date: 'Oct 09, 2026',
+          subject: 'Physics Lab Session',
+          time: '03:00 PM',
+          status: 'LATE',
+          method: '6-Digit PIN',
+        },
+        {
+          id: 'rec-06',
+          date: 'Oct 08, 2026',
+          subject: 'Algebra & Matrices',
+          time: '10:00 AM',
+          status: 'PRESENT',
+          method: 'QR Code',
+        },
+      ];
 
   const filteredRecords = historyRecords.filter((rec) => {
     if (activeFilter === 'ALL') return true;

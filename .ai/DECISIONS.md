@@ -93,4 +93,51 @@ This file is append-only. Do not rewrite history to make a past decision look di
 - **Consequences:** All students enrolled in batches sharing a subject can view and download the notes for that subject. Teachers can upload notes once and have them available across multiple sections. Physical binary files can be stored in object storage or external URLs while metadata and document descriptors are preserved in PostgreSQL.
 - **Revisit when:** Individual private batches require confidential or batch-exclusive exam notes.
 
+## ADR-0012 — Branch-Scoped God Mode Dashboard for Institute Admins (Superseding ADR-0005)
+
+- **Status:** Accepted (2026-10-22, V1 Rehaul mandate). Supersedes ADR-0005 for institute-level governance.
+- **Context:** ADR-0005 deferred all "God View" dashboards. However, the approved V1 scope requires Institute Admins to view branch-wise operational and financial health across fees billed/collected/outstanding, teachers, students, sessions, and attendance summaries. Platform-level Super Admin remains deferred; Institute-level branch God Mode is in-scope.
+- **Decision:** Implement branch-wise God Mode dashboard for Institute Admins with independent permission delegation (`DASHBOARD_VIEW`, `DASHBOARD_FEES_VIEW`). Financial metrics require explicit separate permissions and reconcile directly with source fee transaction records.
+- **Consequences:** Requires backend aggregation queries and branch-scoped metrics endpoints. Preserves strict multi-tenant isolation.
+- **Revisit when:** Global multi-institute Platform Super Admin UI is scheduled.
+
+## ADR-0013 — Multi-Branch Hierarchy and Granular Permission-Based RBAC (Evolving ADR-0010)
+
+- **Status:** Accepted (2026-10-22, V1 Rehaul mandate). Evolves ADR-0010.
+- **Context:** ADR-0010 specified a flat role enum (`TEACHER`, `STUDENT`, `ADMIN`). The V1 Rehaul introduces Institutes with multiple physical branches, Moderators with delegated branch permissions, and multi-branch teacher/student memberships. A flat role enum cannot represent branch-scoped permissions or delegated capabilities.
+- **Decision:** Retain the base role archetype on `users.role` (`PLATFORM_ADMIN`, `INSTITUTE_ADMIN`, `MODERATOR`, `TEACHER`, `STUDENT`), but introduce:
+  1. `branches` table (`id, tenant_id, name, address, status, availability`).
+  2. `branch_assignments` table (`user_id, branch_id, role`).
+  3. `permissions` and `user_permissions` tables for fine-grained capability checks (e.g. `INSTITUTE_MANAGE`, `BRANCH_MANAGE`, `FEES_MANAGE`, `STAFF_LIFECYCLE_MANAGE`).
+- **Consequences:** Spring Security evaluates `@PreAuthorize` against both global and branch-assigned authorities. Existing `tenant-default` records are automatically mapped to a default branch via forward Flyway migration `V5`.
+- **Revisit when:** Complex custom role builder UI is requested by enterprise clients.
+
+## ADR-0014 — Offline Fees Only with Auditable Reversals
+
+- **Status:** Accepted (2026-10-22, V1 Rehaul mandate).
+- **Context:** Coaching institutes require fee tracking, installment management, and receipt issuance, but online payment gateways (Stripe/Razorpay) introduce regulatory, merchant onboarding, and fee reconciliation overhead unnecessary for initial launch.
+- **Decision:** V1 supports **Offline Fees Only** (Cash, UPI direct transfer, Cheque, Bank Transfer). Financial records are strictly immutable: errors are corrected via auditable compensating reversal/adjustment transactions (`RECORDED`, `REVERSED`), never by deleting database rows.
+- **Consequences:** Fast rollout without third-party merchant dependencies; auditable ledger ensures financial integrity.
+- **Revisit when:** Automated in-app payment gateway integration is approved for V2.
+
+## ADR-0015 — Notes & Assignment Publishing Scope: Publishing Only (No Submissions)
+
+- **Status:** Accepted (2026-10-22, V1 Rehaul mandate).
+- **Context:** Teachers need to share lecture notes and publish assignments with due dates and batch targeting. Evaluating whether student submission uploads, grading workflows, and plagiarism checks belong in V1.
+- **Decision:** V1 is strictly **Publishing Only** for notes and assignments. Students can view published materials, download attachments, and participate in 1-level nested discussion comments. Student submission uploads, grading, and feedback are explicitly deferred post-V1.
+- **Consequences:** Eliminates complex multi-file submission storage and grading matrix workflows from the critical path while delivering high value to students and teachers.
+- **Revisit when:** Student submission and grading workflow is scheduled for V2.
+
+## ADR-0016 — Dual-Channel Notifications: In-App Routine + Critical-Only WhatsApp
+
+- **Status:** Accepted (2026-10-22, V1 Rehaul mandate).
+- **Context:** Coaching centers rely heavily on WhatsApp for communications, but WhatsApp Business Cloud API incurs per-message template fees and rate limits.
+- **Decision:**
+  - **In-App / Push Notifications:** Used by default for all routine notices, lecture note publications, and class reminders.
+  - **WhatsApp Notifications:** Strictly reserved for **critical alerts only**: (1) Student absence/attendance alerts, (2) Fee payment receipts and overdue fee reminders, and (3) Urgent class cancellations or timing changes.
+  - Publication success is decoupled from notification delivery outcomes.
+- **Consequences:** Keeps messaging costs predictable while maximizing engagement for critical events.
+- **Revisit when:** Promotional broadcast messaging is requested.
+
+
 

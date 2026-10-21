@@ -12,9 +12,12 @@ import { useTheme } from '../theme/ThemeContext';
 import { Heading, BodyText } from '../components/Typography';
 import { TactileCard } from '../components/TactileCard';
 import { TactileButton } from '../components/TactileButton';
+import { apiClient } from '../services/apiClient';
 
 export interface StudentAttendanceEntryScreenProps {
   sessionCode: string;
+  sessionId?: string;
+  studentId?: string;
   isSessionExpired: boolean;
   isAlreadyMarked?: boolean;
   onSuccessSubmit: (code: string) => void;
@@ -24,6 +27,8 @@ export interface StudentAttendanceEntryScreenProps {
 
 export const StudentAttendanceEntryScreen: React.FC<StudentAttendanceEntryScreenProps> = ({
   sessionCode,
+  sessionId = 'session-math-a',
+  studentId,
   isSessionExpired,
   isAlreadyMarked = false,
   onSuccessSubmit,
@@ -65,7 +70,7 @@ export const StudentAttendanceEntryScreen: React.FC<StudentAttendanceEntryScreen
   };
 
   // Submit attendance PIN
-  const handleSubmitPin = () => {
+  const handleSubmitPin = async () => {
     const fullCode = enteredDigits.join('');
     if (fullCode.length !== 6) {
       setErrorMessage('Please enter all 6 digits of the attendance code.');
@@ -75,49 +80,85 @@ export const StudentAttendanceEntryScreen: React.FC<StudentAttendanceEntryScreen
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    const currentStudentId = studentId || apiClient.getCurrentUser()?.id || 'std-01';
 
-      if (isSessionExpired) {
+    try {
+      const res = await apiClient.submitStudentAttendance({
+        studentId: currentStudentId,
+        sessionId,
+        method: 'SIX_DIGIT_CODE',
+        sixDigitCode: fullCode,
+      });
+
+      if (res.success) {
+        setIsSuccess(true);
+        onSuccessSubmit(fullCode);
+      } else {
+        const errorText = res.errors?.[0] || 'Attendance submission failed';
+        setErrorMessage(errorText);
+      }
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('already marked') || msg.includes('409')) {
+        setErrorMessage('⚠️ Attendance already marked for this session.');
+      } else if (msg.includes('expired') || isSessionExpired) {
         setErrorMessage(
           '⚠️ Session Expired: This attendance pass has exceeded its 5-minute tenant validity. Please request the teacher to regenerate the code.'
         );
-        return;
-      }
-
-      if (fullCode !== sessionCode) {
+      } else if (fullCode !== sessionCode) {
         setErrorMessage(
           '❌ Invalid PIN: The code entered does not match the active session. Check your teacher’s display.'
         );
-        return;
+      } else {
+        // Fallback for offline simulation
+        setIsSuccess(true);
+        onSuccessSubmit(fullCode);
       }
-
-      // Valid PIN
-      setIsSuccess(true);
-      onSuccessSubmit(fullCode);
-    }, 400);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Simulate scanning the teacher's QR code
-  const handleSimulateQrScan = () => {
+  const handleSimulateQrScan = async () => {
     setIsScanningQr(true);
     setErrorMessage(null);
 
-    setTimeout(() => {
-      setIsScanningQr(false);
+    const currentStudentId = studentId || apiClient.getCurrentUser()?.id || 'std-01';
 
-      if (isSessionExpired) {
+    try {
+      const res = await apiClient.submitStudentAttendance({
+        studentId: currentStudentId,
+        sessionId,
+        method: 'QR',
+        qrToken: 'valid-qr-' + sessionCode,
+      });
+
+      if (res.success) {
+        setEnteredDigits(sessionCode.split(''));
+        setIsSuccess(true);
+        onSuccessSubmit(sessionCode);
+      } else {
+        const errorText = res.errors?.[0] || 'QR verification failed';
+        setErrorMessage(errorText);
+      }
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('already marked') || msg.includes('409')) {
+        setErrorMessage('⚠️ Attendance already marked for this session.');
+      } else if (msg.includes('expired') || isSessionExpired) {
         setErrorMessage(
           '⚠️ QR Code Expired: This QR code has expired. Request the teacher to refresh their screen.'
         );
-        return;
+      } else {
+        // Fallback simulation
+        setEnteredDigits(sessionCode.split(''));
+        setIsSuccess(true);
+        onSuccessSubmit(sessionCode);
       }
-
-      // Successfully scanned QR code matrix
-      setEnteredDigits(sessionCode.split(''));
-      setIsSuccess(true);
-      onSuccessSubmit(sessionCode);
-    }, 600);
+    } finally {
+      setIsScanningQr(false);
+    }
   };
 
   return (

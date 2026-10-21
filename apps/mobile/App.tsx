@@ -164,6 +164,8 @@ function MainApp() {
             {studentScreen === 'student_attendance_entry' && (
               <StudentAttendanceEntryScreen
                 sessionCode={sessionCode}
+                sessionId={activeSessionId}
+                studentId={user?.id}
                 isSessionExpired={isSessionExpired}
                 isAlreadyMarked={isStudentAttendanceMarked}
                 onSuccessSubmit={handleStudentSubmitSuccess}
@@ -175,6 +177,7 @@ function MainApp() {
             {studentScreen === 'student_attendance_summary' && (
               <>
                 <StudentAttendanceSummaryScreen
+                  studentId={user?.id}
                   isAttendanceMarked={isStudentAttendanceMarked}
                   onNavigateBack={() => setStudentScreen('student_home')}
                   onNavigateToMarkAttendance={() => setStudentScreen('student_attendance_entry')}
